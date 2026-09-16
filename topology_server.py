@@ -22,7 +22,8 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'text/html')
             self.end_headers()
-            with open('/Users/qawer7/Desktop/GRCEngineering/lambda-source/sase-lab/sase_enterprise_dashboard.html', 'r') as f:
+            html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sase_enterprise_dashboard.html')
+            with open(html_path, 'r') as f:
                 html_code = f.read()
             self.wfile.write(html_code.encode('utf-8'))
 

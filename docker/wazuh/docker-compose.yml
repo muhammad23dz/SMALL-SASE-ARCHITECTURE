@@ -28,7 +28,7 @@ services:
     depends_on:
       - wazuh-indexer
     healthcheck:
-      test: ["CMD-SHELL", "curl -k -s -u ${WAZUH_API_USERNAME}:${WAZUH_API_PASSWORD} https://localhost:55000/ | grep -q 'Wazuh' || exit 1"]
+      test: ["CMD-SHELL", "curl -k -s -o /dev/null -w '%{http_code}' https://localhost:55000/ | grep -qE '200|401|302'"]
       interval: 30s
       timeout: 15s
       retries: 10
@@ -57,7 +57,7 @@ services:
     networks:
       - sase-siem-net
     healthcheck:
-      test: ["CMD-SHELL", "curl -u ${WAZUH_INDEXER_USERNAME}:${WAZUH_INDEXER_PASSWORD} -k -s https://localhost:9200/_cluster/health | grep -q green"]
+      test: ["CMD-SHELL", "curl -u ${WAZUH_INDEXER_USERNAME}:${WAZUH_INDEXER_PASSWORD} -k -s https://localhost:9200/_cluster/health | grep -qE 'green|yellow'"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -95,7 +95,7 @@ services:
       - wazuh-indexer
       - wazuh-manager
     healthcheck:
-      test: ["CMD-SHELL", "curl -sk -o /dev/null -w '%{http_code}' https://localhost:5601/api/status | grep -qE '200|401|302'"]
+      test: ["CMD-SHELL", "curl -sk -o /dev/null -w '%{http_code}' http://localhost:5601/api/status | grep -qE '200|401|302'"]
       interval: 30s
       timeout: 15s
       retries: 10

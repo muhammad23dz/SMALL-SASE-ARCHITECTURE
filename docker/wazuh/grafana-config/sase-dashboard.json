@@ -1,347 +1,320 @@
 {
-  "annotations": {
-    "list": [
+  "dashboard": {
+    "id": 1,
+    "uid": "sase-dashboard",
+    "title": "SASE Security Correlation Dashboard",
+    "tags": ["sase", "security", "siem", "wazuh", "zero-trust", "soc"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "refresh": "5s",
+    "panels": [
       {
-        "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
-  "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "id": null,
-  "links": [],
-  "liveNow": false,
-  "panels": [
-    {
-      "datasource": { "type": "grafana-opensearch-datasource", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
-            ]
-          },
-          "unit": "short",
-          "mappings": []
+        "id": 1,
+        "title": "🔴 Critical & High Alerts (lvl ≥10)",
+        "type": "stat",
+        "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+          "textMode": "auto"
         },
-        "overrides": []
-      },
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
-      "id": 1,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "alias": "",
-          "bucketAggs": [{ "type": "date_histogram", "field": "@timestamp", "id": "2", "settings": { "interval": "auto" } }],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "rule.level:>=10",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "🔴 High Severity Alerts",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "grafana-opensearch-datasource", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 1 }
-            ]
-          },
-          "unit": "short",
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
-      "id": 2,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "alias": "",
-          "bucketAggs": [{ "type": "date_histogram", "field": "@timestamp", "id": "2", "settings": { "interval": "auto" } }],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "rule.level:>=7 AND rule.level:<10",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "🟠 Medium Severity Alerts",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "grafana-opensearch-datasource", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "blue", "value": null }
-            ]
-          },
-          "unit": "short",
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
-      "id": 3,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "alias": "",
-          "bucketAggs": [{ "type": "date_histogram", "field": "@timestamp", "id": "2", "settings": { "interval": "auto" } }],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "*",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "📊 Total Events",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "grafana-opensearch-datasource", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
-            ]
-          },
-          "unit": "short",
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
-      "id": 4,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "textMode": "auto"
-      },
-      "targets": [
-        {
-          "alias": "",
-          "bucketAggs": [{ "type": "date_histogram", "field": "@timestamp", "id": "2", "settings": { "interval": "auto" } }],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "rule.groups:suricata",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "🛡️ Suricata IPS Alerts",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "grafana-opensearch-datasource", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "unit": "short",
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 5 },
-      "id": 5,
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "none" }
-      },
-      "targets": [
-        {
-          "alias": "Critical (>=10)",
-          "bucketAggs": [{ "type": "date_histogram", "field": "@timestamp", "id": "2", "settings": { "interval": "auto", "min_doc_count": "0" } }],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "rule.level:>=10",
-          "refId": "A",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "Medium (7-9)",
-          "bucketAggs": [{ "type": "date_histogram", "field": "@timestamp", "id": "4", "settings": { "interval": "auto", "min_doc_count": "0" } }],
-          "metrics": [{ "type": "count", "id": "3" }],
-          "query": "rule.level:>=7 AND rule.level:<10",
-          "refId": "B",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "Security Alert Trend (24h)",
-      "type": "timeseries"
-    },
-    {
-      "datasource": { "type": "grafana-opensearch-datasource", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "unit": "short",
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 5 },
-      "id": 6,
-      "options": {
-        "displayLabels": ["percent"],
-        "legend": { "displayMode": "table", "placement": "right", "showLegend": true },
-        "pieType": "pie",
-        "tooltip": { "mode": "single", "sort": "none" }
-      },
-      "targets": [
-        {
-          "alias": "",
-          "bucketAggs": [
-            { "type": "terms", "field": "rule.description", "id": "2", "settings": { "size": "10", "order": "desc", "orderBy": "1" } }
-          ],
-          "metrics": [{ "type": "count", "id": "1" }],
-          "query": "rule.level:>=7",
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "title": "Top Alert Categories",
-      "type": "piechart"
-    },
-    {
-      "datasource": { "type": "grafana-opensearch-datasource", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "custom": {
-            "align": "auto",
-            "displayMode": "auto",
-            "filterable": true
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 7 },
-              { "color": "red", "value": 10 }
-            ]
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "#2C0B0E", "value": null },
+                { "color": "#E53935", "value": 1 }
+              ]
+            },
+            "unit": "short"
           }
         },
-        "overrides": [
+        "targets": [{
+          "query": "rule.level:>=10",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [{ "id": "2", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto" } }],
+          "timeField": "@timestamp"
+        }]
+      },
+      {
+        "id": 2,
+        "title": "🟠 Medium Severity Alerts (lvl 7-9)",
+        "type": "stat",
+        "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "#2E1A05", "value": null },
+                { "color": "#FB8C00", "value": 1 }
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [{
+          "query": "rule.level:>=7 AND rule.level:<10",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [{ "id": "2", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto" } }],
+          "timeField": "@timestamp"
+        }]
+      },
+      {
+        "id": 3,
+        "title": "🛡️ Suricata IPS Blocked Threats",
+        "type": "stat",
+        "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "#1A092B", "value": null },
+                { "color": "#8E24AA", "value": 1 }
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [{
+          "query": "rule.groups:suricata",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [{ "id": "2", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto" } }],
+          "timeField": "@timestamp"
+        }]
+      },
+      {
+        "id": 4,
+        "title": "📊 Total Security Events Analyzed",
+        "type": "stat",
+        "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "#071B2F", "value": null },
+                { "color": "#1E88E5", "value": 1 }
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [{
+          "query": "*",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [{ "id": "2", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto" } }],
+          "timeField": "@timestamp"
+        }]
+      },
+      {
+        "id": 5,
+        "title": "📈 Security Alert Trend & Threat Timeline",
+        "type": "timeseries",
+        "gridPos": { "h": 9, "w": 14, "x": 0, "y": 5 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+          "tooltip": { "mode": "multi", "sort": "none" }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" },
+            "custom": { "fillOpacity": 30, "lineWidth": 2, "gradientMode": "opacity" }
+          },
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "Critical Alerts (≥10)" },
+              "properties": [{ "id": "color", "value": { "fixedColor": "#E53935", "mode": "fixed" } }]
+            },
+            {
+              "matcher": { "id": "byName", "options": "Medium Alerts (7-9)" },
+              "properties": [{ "id": "color", "value": { "fixedColor": "#FB8C00", "mode": "fixed" } }]
+            },
+            {
+              "matcher": { "id": "byName", "options": "ZTNA Policy Denials" },
+              "properties": [{ "id": "color", "value": { "fixedColor": "#8E24AA", "mode": "fixed" } }]
+            }
+          ]
+        },
+        "targets": [
           {
-            "matcher": { "id": "byName", "options": "rule.level" },
-            "properties": [{ "id": "custom.displayMode", "value": "color-background" }]
+            "alias": "Critical Alerts (≥10)",
+            "query": "rule.level:>=10",
+            "metrics": [{ "id": "1", "type": "count" }],
+            "bucketAggs": [{ "id": "2", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto", "min_doc_count": "0" } }],
+            "timeField": "@timestamp"
+          },
+          {
+            "alias": "Medium Alerts (7-9)",
+            "query": "rule.level:>=7 AND rule.level:<10",
+            "metrics": [{ "id": "3", "type": "count" }],
+            "bucketAggs": [{ "id": "4", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto", "min_doc_count": "0" } }],
+            "timeField": "@timestamp"
+          },
+          {
+            "alias": "ZTNA Policy Denials",
+            "query": "rule.groups:cloudflare",
+            "metrics": [{ "id": "5", "type": "count" }],
+            "bucketAggs": [{ "id": "6", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto", "min_doc_count": "0" } }],
+            "timeField": "@timestamp"
           }
         ]
       },
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 14 },
-      "id": 7,
-      "options": {
-        "footer": { "fields": "", "reducer": ["sum"], "show": false },
-        "showHeader": true,
-        "sortBy": [{ "displayName": "Time", "desc": true }]
-      },
-      "targets": [
-        {
-          "alias": "",
-          "bucketAggs": [],
-          "metrics": [{ "type": "raw_data", "id": "1", "settings": { "size": "100" } }],
+      {
+        "id": 6,
+        "title": "🍩 Top Attack Rule Categories",
+        "type": "piechart",
+        "gridPos": { "h": 9, "w": 10, "x": 14, "y": 5 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "pieType": "pie",
+          "displayLabels": ["percent"],
+          "legend": { "displayMode": "table", "placement": "right", "showLegend": true }
+        },
+        "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+        "targets": [{
           "query": "rule.level:>=7",
-          "refId": "A",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [{ "id": "2", "type": "terms", "field": "rule.groups", "settings": { "size": "8", "order": "desc", "orderBy": "1" } }],
           "timeField": "@timestamp"
-        }
-      ],
-      "title": "Recent High-Severity Events",
-      "transformations": [
-        {
+        }]
+      },
+      {
+        "id": 7,
+        "title": "🎯 Top Attacker Source IPs",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "orientation": "horizontal",
+          "legend": { "displayMode": "hidden" }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "palette-classic" }
+          }
+        },
+        "targets": [{
+          "query": "rule.level:>=7",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [{ "id": "2", "type": "terms", "field": "data.srcip", "settings": { "size": "8", "order": "desc", "orderBy": "1" } }],
+          "timeField": "@timestamp"
+        }]
+      },
+      {
+        "id": 8,
+        "title": "🏢 Affected Infrastructure Assets",
+        "type": "piechart",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "pieType": "donut",
+          "displayLabels": ["name", "percent"],
+          "legend": { "displayMode": "table", "placement": "right", "showLegend": true }
+        },
+        "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+        "targets": [{
+          "query": "*",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [{ "id": "2", "type": "terms", "field": "agent.name", "settings": { "size": "8", "order": "desc", "orderBy": "1" } }],
+          "timeField": "@timestamp"
+        }]
+      },
+      {
+        "id": 9,
+        "title": "🚨 Live Security Event Audit Trail (SOC Log View)",
+        "type": "table",
+        "gridPos": { "h": 10, "w": 24, "x": 0, "y": 22 },
+        "datasource": { "type": "grafana-opensearch-datasource", "uid": "wazuh-indexer-ds" },
+        "options": {
+          "showHeader": true,
+          "footer": { "show": false },
+          "sortBy": [{ "displayName": "Time", "desc": true }]
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": { "mode": "thresholds" },
+            "custom": { "filterable": true, "displayMode": "auto" },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "#2E7D32", "value": null },
+                { "color": "#FB8C00", "value": 7 },
+                { "color": "#E53935", "value": 10 }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": { "id": "byName", "options": "Severity" },
+              "properties": [{ "id": "custom.displayMode", "value": "color-background-solid" }]
+            },
+            {
+              "matcher": { "id": "byName", "options": "rule.level" },
+              "properties": [{ "id": "custom.displayMode", "value": "color-background-solid" }]
+            }
+          ]
+        },
+        "targets": [{
+          "query": "rule.level:>=7",
+          "metrics": [{ "id": "1", "type": "raw_data", "settings": { "size": "100" } }],
+          "timeField": "@timestamp"
+        }],
+        "transformations": [{
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "_id": true,
-              "_index": true,
-              "_type": true,
-              "agent.id": false,
-              "agent.name": false
-            },
+            "excludeByName": { "_id": true, "_index": true, "_type": true },
             "renameByName": {
               "@timestamp": "Time",
+              "agent.name": "Agent / Host",
+              "data.srcip": "Source IP",
+              "rule.description": "Security Rule / Threat Alert",
               "rule.level": "Severity",
-              "rule.description": "Rule",
-              "agent.name": "Agent",
-              "data.srcip": "Src IP"
+              "full_log": "Raw Log Payload"
             }
           }
-        }
-      ],
-      "type": "table"
-    }
-  ],
-  "refresh": "30s",
-  "schemaVersion": 38,
-  "style": "dark",
-  "tags": ["sase", "security", "siem", "wazuh", "zero-trust"],
-  "templating": {
-    "list": [
-      {
-        "current": {},
-        "hide": 0,
-        "includeAll": false,
-        "label": "Datasource",
-        "multi": false,
-        "name": "datasource",
-        "options": [],
-        "query": "grafana-opensearch-datasource",
-        "refresh": 1,
-        "regex": "",
-        "type": "datasource"
+        }]
       }
     ]
   },
-  "time": { "from": "now-24h", "to": "now" },
-  "timepicker": {},
-  "timezone": "browser",
-  "title": "SASE Security Correlation Dashboard",
-  "uid": "sase-dashboard",
-  "version": 4
+  "overwrite": true
 }
