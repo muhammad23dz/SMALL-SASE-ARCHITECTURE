@@ -30,7 +30,9 @@ def generate_events():
 
     # 1. SSH Brute Force Attack (70 events)
     for i in range(70):
-        ts = (now - timedelta(minutes=random.randint(1, 2880))).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        # Generate 20 events in the last 10 minutes for immediate visibility
+        minutes_ago = random.randint(0, 10) if i < 20 else random.randint(1, 2880)
+        ts = (now - timedelta(minutes=minutes_ago)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
         src_ip = random.choice(ATTACKER_IPS[:4])
         user = random.choice(["root", "admin", "postgres", "ubuntu", "test"])
         events.append({
