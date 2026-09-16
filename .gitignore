@@ -1,0 +1,53 @@
+# ==========================================
+# DevSecOps Security & Environment Exclusions
+# ==========================================
+
+# 1. Environment & Secret Configuration Files
+.env
+.env.*
+!.env.example
+CREDENTIALS_SUMMARY.txt
+.vault_password
+auto-configure.sh
+configure-credentials.sh
+setup-secrets.sh
+
+# 2. Terraform State, Cache & Variables
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+
+# 3. Security Keys, Certificates & Tokens
+*.key
+*.pem
+*.crt
+*.pub
+*.p12
+*.pfx
+*.asc
+generate-wg-keys.sh
+
+# 4. Ansible Vault & Cache
+*.retry
+.ansible/
+.cache/
+
+# 5. Container & OS Artifacts
+.DS_Store
+Thumbs.db
+*.log
+logs/
+tmp/
+temp/
+
+# 6. IDE Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

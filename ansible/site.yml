@@ -1,0 +1,16 @@
+---
+- name: SASE Lab - Bootstrap Network Infrastructure (FRR Routers)
+  hosts: frr_routers
+  gather_facts: no
+  roles:
+    - frr
+  vars_files:
+    - group_vars/all.yml
+
+- name: SASE Lab - Configure Firewalls (iptables)
+  hosts: firewalls
+  gather_facts: no
+  roles:
+    - firewall
+  vars_files:
+    - group_vars/all.yml

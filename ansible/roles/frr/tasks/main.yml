@@ -1,0 +1,106 @@
+- name: Include site-specific variables
+  include_vars: vars/main.yml
+
+- name: Include vault variables
+  include_vars: "{{ playbook_dir }}/group_vars/all.yml"
+
+# -------------------------------------------------------
+# Configure interface IP addresses via shell
+# (FRR containers use iproute2 for interface config)
+# -------------------------------------------------------
+- name: Configure WAN interface address
+  shell: |
+    ip addr flush dev eth1 2>/dev/null || true
+    ip addr add {{ site_config[inventory_hostname].wan_ip }}/24 dev eth1
+    ip link set eth1 up
+  args:
+    executable: /bin/sh
+
+- name: Configure LAN interface address
+  shell: |
+    ip addr flush dev eth2 2>/dev/null || true
+    ip addr add 10.{{ site_config[inventory_hostname].site_id }}.0.1/24 dev eth2
+    ip link set eth2 up
+  args:
+    executable: /bin/sh
+
+- name: Enable IP forwarding
+  shell: |
+    sysctl -w net.ipv4.ip_forward=1
+  args:
+    executable: /bin/sh
+
+# -------------------------------------------------------
+# Configure FRR daemons (enable BGP and OSPF)
+# -------------------------------------------------------
+- name: Enable BGP and OSPF daemons in FRR
+  shell: |
+    sed -i 's/^bgpd=no/bgpd=yes/' /etc/frr/daemons
+    sed -i 's/^ospfd=no/ospfd=yes/' /etc/frr/daemons
+  args:
+    executable: /bin/sh
+
+- name: Ensure bgpd and ospfd daemons are running
+  shell: |
+    pgrep bgpd >/dev/null || /usr/lib/frr/bgpd -d 2>/dev/null || /usr/libexec/frr/bgpd -d 2>/dev/null || true
+    pgrep ospfd >/dev/null || /usr/lib/frr/ospfd -d 2>/dev/null || /usr/libexec/frr/ospfd -d 2>/dev/null || true
+  args:
+    executable: /bin/sh
+
+# -------------------------------------------------------
+# Configure BGP via vtysh
+# -------------------------------------------------------
+- name: Configure BGP routing
+  shell: |
+    vtysh -c "configure terminal" \
+          -c "router bgp {{ site_config[inventory_hostname].asn }}" \
+          -c " bgp router-id 10.{{ site_config[inventory_hostname].site_id }}.0.1" \
+          -c " no bgp ebgp-requires-policy" \
+          -c " neighbor {{ neighbor_item.ip }} remote-as {{ neighbor_item.asn }}" \
+          -c " address-family ipv4 unicast" \
+          -c "  network 10.{{ site_config[inventory_hostname].site_id }}.0.0/24" \
+          -c "  neighbor {{ neighbor_item.ip }} activate" \
+          -c "  neighbor {{ neighbor_item.ip }} soft-reconfiguration inbound" \
+          -c " exit-address-family" \
+          -c "exit" \
+          -c "exit"
+  loop: "{{ bgp_neighbors[inventory_hostname] }}"
+  loop_control:
+    loop_var: neighbor_item
+  args:
+    executable: /bin/sh
+
+# -------------------------------------------------------
+# Configure OSPF for overlay network via vtysh
+# -------------------------------------------------------
+- name: Configure OSPF routing
+  shell: |
+    vtysh -c "configure terminal" \
+          -c "router ospf" \
+          -c " ospf router-id {{ site_config[inventory_hostname].wg_ip }}" \
+          -c " network 10.100.0.0/24 area 0" \
+          -c "exit" \
+          -c "exit"
+  args:
+    executable: /bin/sh
+
+# -------------------------------------------------------
+# Configure static routes for policy-based routing
+# -------------------------------------------------------
+- name: Configure static routes for internal traffic
+  shell: |
+    vtysh -c "configure terminal" \
+          -c "ip route 10.0.0.0/8 10.{{ site_config[inventory_hostname].site_id }}.0.1" \
+          -c "ip route 172.16.0.0/12 10.{{ site_config[inventory_hostname].site_id }}.0.1" \
+          -c "exit"
+  args:
+    executable: /bin/sh
+
+# -------------------------------------------------------
+# Save FRR configuration
+# -------------------------------------------------------
+- name: Save FRR running configuration
+  shell: |
+    vtysh -c "write memory"
+  args:
+    executable: /bin/sh

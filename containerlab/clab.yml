@@ -1,0 +1,131 @@
+name: sase-lab
+
+mgmt:
+  network: sase-mgmt
+  ipv4-subnet: 172.20.20.0/24
+
+topology:
+  nodes:
+    # -------------------------------------------------------
+    # Simulated Internet – Linux container acting as WAN backbone
+    # -------------------------------------------------------
+    internet:
+      kind: linux
+      image: custom-alpine-fw
+      cmd: >-
+        sh -c "
+          ip addr add 198.51.100.1/24 dev eth1 2>/dev/null;
+          ip addr add 198.51.100.1/24 dev eth2 2>/dev/null || true;
+          ip addr add 198.51.100.1/24 dev eth3 2>/dev/null || true;
+          sysctl -w net.ipv4.ip_forward=1;
+          sleep infinity"
+      mgmt-ipv4: 172.20.20.2
+
+    # -------------------------------------------------------
+    # HQ Edge – FRRouting router
+    # -------------------------------------------------------
+    hq-rtr:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      mgmt-ipv4: 172.20.20.11
+
+    # HQ firewall (Linux with iptables)
+    hq-fw:
+      kind: linux
+      image: custom-alpine-fw
+      cmd: >-
+        sh -c "
+          sysctl -w net.ipv4.ip_forward=1;
+          sleep infinity"
+      mgmt-ipv4: 172.20.20.12
+
+    # -------------------------------------------------------
+    # Branch Edge – FRRouting SD-WAN node
+    # -------------------------------------------------------
+    branch-rtr:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      mgmt-ipv4: 172.20.20.21
+
+    # Branch firewall (Linux with iptables)
+    branch-fw:
+      kind: linux
+      image: custom-alpine-fw
+      cmd: >-
+        sh -c "
+          sysctl -w net.ipv4.ip_forward=1;
+          sleep infinity"
+      mgmt-ipv4: 172.20.20.22
+
+    # -------------------------------------------------------
+    # Remote Worker – FRRouting WireGuard/WARP endpoint
+    # -------------------------------------------------------
+    remote-rtr:
+      kind: linux
+      image: quay.io/frrouting/frr:10.7.1
+      mgmt-ipv4: 172.20.20.31
+
+    # -------------------------------------------------------
+    # Internal Applications (behind HQ)
+    # -------------------------------------------------------
+    wiki-app:
+      kind: linux
+      image: nginx:alpine
+      cmd: nginx -g "daemon off;"
+      mgmt-ipv4: 172.20.20.40
+
+    grafana-app:
+      kind: linux
+      image: grafana/grafana:latest
+      mgmt-ipv4: 172.20.20.41
+
+    # -------------------------------------------------------
+    # LAN switch nodes – Alpine containers acting as L2 bridges
+    # -------------------------------------------------------
+    hq-lan-sw:
+      kind: linux
+      image: alpine:latest
+      cmd: >-
+        sh -c "
+          ip link add br0 type bridge;
+          ip link set br0 up;
+          for iface in eth1 eth2 eth3 eth4; do
+            ip link set \$iface up 2>/dev/null;
+            ip link set \$iface master br0 2>/dev/null;
+          done;
+          sleep infinity"
+      mgmt-ipv4: 172.20.20.50
+
+    branch-lan-sw:
+      kind: linux
+      image: alpine:latest
+      cmd: >-
+        sh -c "
+          ip link add br0 type bridge;
+          ip link set br0 up;
+          for iface in eth1 eth2; do
+            ip link set \$iface up 2>/dev/null;
+            ip link set \$iface master br0 2>/dev/null;
+          done;
+          sleep infinity"
+      mgmt-ipv4: 172.20.20.51
+
+  links:
+    # === Internet backbone connections (WAN) ===
+    - endpoints: ["internet:eth1", "hq-rtr:eth1"]
+    - endpoints: ["internet:eth2", "branch-rtr:eth1"]
+    - endpoints: ["internet:eth3", "remote-rtr:eth1"]
+
+    # === HQ LAN – all nodes connect to the HQ switch ===
+    - endpoints: ["hq-rtr:eth2", "hq-lan-sw:eth1"]
+    - endpoints: ["hq-fw:eth1", "hq-lan-sw:eth2"]
+    - endpoints: ["wiki-app:eth1", "hq-lan-sw:eth3"]
+    - endpoints: ["grafana-app:eth1", "hq-lan-sw:eth4"]
+
+    # === Branch LAN – nodes connect to the branch switch ===
+    - endpoints: ["branch-rtr:eth2", "branch-lan-sw:eth1"]
+    - endpoints: ["branch-fw:eth1", "branch-lan-sw:eth2"]
+
+    # === WireGuard overlay mesh (point-to-point) ===
+    - endpoints: ["hq-rtr:eth3", "branch-rtr:eth3"]
+    - endpoints: ["hq-rtr:eth4", "remote-rtr:eth2"]

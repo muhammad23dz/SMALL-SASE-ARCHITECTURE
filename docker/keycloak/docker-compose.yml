@@ -1,0 +1,89 @@
+services:
+  keycloak:
+    build: .
+    image: custom-sase-keycloak:latest
+    container_name: sase-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: ${KC_HOSTNAME}
+      KC_HOSTNAME_STRICT: ${KC_HOSTNAME_STRICT}
+      KC_HOSTNAME_STRICT_HTTPS: ${KC_HOSTNAME_STRICT_HTTPS}
+      KC_HTTP_ENABLED: ${KC_HTTP_ENABLED}
+      KC_PROXY: ${KC_PROXY}
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - sase-keycloak-net
+    volumes:
+      - keycloak-certs:/etc/x509/https
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/realms/master || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+
+  keycloak-db:
+    image: postgres:16.1-alpine
+    container_name: sase-keycloak-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    networks:
+      - sase-keycloak-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /var/run/postgresql
+      - /tmp
+
+  # cloudflared must be on BOTH networks so it can route traffic to:
+  #   keycloak.sase-lab.win  → sase-keycloak:8080      (keycloak net)
+  #   grafana.sase-lab.win   → sase-grafana:3000        (siem net)
+  #   wazuh.sase-lab.win     → sase-wazuh-dashboard:5601 (siem net)
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: sase-cloudflared
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    restart: unless-stopped
+    networks:
+      - sase-keycloak-net
+      - sase-siem-net        # ← gives cloudflared access to Grafana & Wazuh
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  sase-keycloak-net:
+    name: keycloak_sase-keycloak-net
+    external: true
+
+  # Reference the wazuh network so cloudflared can reach Grafana + Wazuh Dashboard
+  sase-siem-net:
+    name: wazuh_sase-siem-net
+    external: true
+
+volumes:
+  keycloak-db-data:
+  keycloak-certs:

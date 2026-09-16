@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SASE Architecture Topology - Enterprise View</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0B1120;
+            --panel-bg: #1E293B;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-blue: #3B82F6;
+            --accent-green: #10B981;
+            --accent-red: #EF4444;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 10;
+        }
+
+        #header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        #cy-container {
+            flex-grow: 1;
+            position: relative;
+            margin-top: 60px;
+        }
+
+        #cy {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Plane Labels */
+        .plane-label {
+            position: absolute;
+            left: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #sidebar {
+            width: 400px;
+            background-color: var(--panel-bg);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            box-shadow: -4px 0 15px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.1rem;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .sidebar-content {
+            padding: 24px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .prop-group {
+            margin-bottom: 24px;
+        }
+
+        .prop-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .prop-value {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+            margin-top: 8px;
+        }
+
+        .mitre-tag {
+            display: inline-block;
+            background: rgba(239, 68, 68, 0.15);
+            color: #FCA5A5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin: 4px 4px 0 0;
+        }
+
+        .instruction-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h1><i class="fa-solid fa-network-wired" style="color: var(--accent-blue); margin-right: 12px;"></i> SASE Lab Enterprise Architecture</h1>
+    </div>
+
+    <div id="cy-container">
+        <!-- Background grid guides for planes -->
+        <div class="plane-label" style="top: 100px;">USER PLANE</div>
+        <div class="plane-label" style="top: 250px;">CONTROL PLANE</div>
+        <div class="plane-label" style="top: 450px;">SECURITY PLANE</div>
+        <div class="plane-label" style="top: 650px;">DATA PLANE</div>
+        
+        <div id="cy"></div>
+        <div class="instruction-overlay"><i class="fa-solid fa-mouse-pointer"></i> Click on any node or link to decorticate architecture</div>
+    </div>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h2 id="sb-title">Architecture Overview</h2>
+            <p id="sb-desc">Select a node or link in the topology to view its decorticated technical breakdown, security posture, and associated planes.</p>
+        </div>
+        <div class="sidebar-content" id="sb-content">
+            <div class="prop-group">
+                <div class="prop-label">System State</div>
+                <div class="prop-value">All planes operational. Waiting for node selection.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Define node data enriched with architectural details
+        const architectureData = {
+            'cf-zt': {
+                name: 'Cloudflare Zero Trust',
+                type: 'IdP Gateway',
+                plane: 'User Plane',
+                desc: 'Serves as the external boundary and identity-aware proxy. Enforces initial access control and SSO routing.',
+                mitre: ['T1078 (Valid Accounts) Mitigated'],
+                status: 'Operational'
+            },
+            'user-laptop': {
+                name: 'Remote User',
+                type: 'Endpoint',
+                plane: 'User Plane',
+                desc: 'Simulated remote endpoint connecting via WireGuard to the corporate mesh.',
+                mitre: [],
+                status: 'Connected'
+            },
+            'keycloak': {
+                name: 'Keycloak OIDC',
+                type: 'Identity Provider',
+                plane: 'Control Plane',
+                desc: 'Centralized authentication authority. Issues JWT tokens and manages RBAC for all internal applications.',
+                mitre: ['T1556 (Modify Authentication Process) Monitored'],
+                status: 'Operational'
+            },
+            'vault': {
+                name: 'HashiCorp Vault',
+                type: 'Secrets Manager',
+                plane: 'Control Plane',
+                desc: 'Dynamic secrets engine and PKI infrastructure. Provides ephemeral credentials to the Data Plane apps.',
+                mitre: ['T1552 (Unsecured Credentials) Mitigated'],
+                status: 'Sealed/Active'
+            },
+            'wazuh': {
+                name: 'Wazuh SIEM',
+                type: 'Security Analytics',
+                plane: 'Security Plane',
+                desc: 'Aggregates HIDS events, Suricata EVE JSON logs, and Keycloak audit trails for real-time threat detection.',
+                mitre: ['TA0043 (Reconnaissance) Detected', 'TA0008 (Lateral Movement) Detected'],
+                status: 'Receiving Telemetry'
+            },
+            'suricata': {
+                name: 'Suricata IPS',
+                type: 'Network Inspection',
+                plane: 'Security Plane',
+                desc: 'Inline Layer 7 Deep Packet Inspection. Analyzes traversing traffic for signatures of exploitation.',
+                mitre: ['T1190 (Exploit Public-Facing App) Blocked'],
+                status: 'Inline Mode Active'
+            },
+            'vyos-hub': {
+                name: 'VyOS Hub Router',
+                type: 'BGP/VPN Gateway',
+                plane: 'Data Plane',
+                desc: 'Core transit node. Manages BGP AS65000 and terminates remote WireGuard tunnels.',
+                mitre: ['T1095 (Non-Application Layer Protocol) Monitored'],
+                status: 'Routing'
+            },
+            'vyos-spoke1': {
+                name: 'VyOS Spoke 1 (App)',
+                type: 'Edge Router',
+                plane: 'Data Plane',
+                desc: 'Segment gateway for the application zone (AS65001). Forwards traffic through Suricata.',
+                mitre: [],
+                status: 'Routing'
+            },
+            'nginx-app': {
+                name: 'Internal App (NGINX)',
+                type: 'Workload',
+                plane: 'Data Plane',
+                desc: 'Protected corporate application. Relies on Zero Trust headers and Vault for database credentials.',
+                mitre: [],
+                status: 'Serving Traffic'
+            }
+        };
+
+        // Initialize Cytoscape
+        const cy = cytoscape({
+            container: document.getElementById('cy'),
+            
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'shape': 'round-rectangle',
+                        'width': 220,
+                        'height': 60,
+                        'background-color': '#1E293B',
+                        'border-width': 2,
+                        'border-color': '#3B82F6',
+                        'label': 'data(label)',
+                        'color': '#F8FAFC',
+                        'font-size': '12px',
+                        'font-family': 'Inter, sans-serif',
+                        'font-weight': '600',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'padding': '10px'
+                    }
+                },
+                {
+                    selector: 'node[type="Security Plane"]',
+                    style: { 'border-color': '#EF4444' }
+                },
+                {
+                    selector: 'node[type="Control Plane"]',
+                    style: { 'border-color': '#10B981' }
+                },
+                {
+                    selector: 'node[type="User Plane"]',
+                    style: { 'border-color': '#8B5CF6' }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 2,
+                        'line-color': '#475569',
+                        'target-arrow-color': '#475569',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'taxi',
+                        'taxi-direction': 'vertical',
+                        'taxi-turn': 20,
+                        'taxi-turn-min-distance': 10
+                    }
+                },
+                {
+                    selector: 'edge:selected',
+                    style: {
+                        'line-color': '#3B82F6',
+                        'target-arrow-color': '#3B82F6',
+                        'width': 4
+                    }
+                },
+                {
+                    selector: 'node:selected',
+                    style: {
+                        'background-color': '#2563EB',
+                        'color': '#ffffff'
+                    }
+                }
+            ],
+
+            elements: [
+                // USER PLANE (Y ~ 100)
+                { data: { id: 'user-laptop', label: 'Remote User', type: 'User Plane' }, position: { x: 300, y: 100 } },
+                { data: { id: 'cf-zt', label: 'Cloudflare Zero Trust', type: 'User Plane' }, position: { x: 700, y: 100 } },
+
+                // CONTROL PLANE (Y ~ 250)
+                { data: { id: 'keycloak', label: 'Keycloak (IdP)', type: 'Control Plane' }, position: { x: 700, y: 250 } },
+                { data: { id: 'vault', label: 'HashiCorp Vault', type: 'Control Plane' }, position: { x: 950, y: 250 } },
+
+                // SECURITY PLANE (Y ~ 450)
+                { data: { id: 'suricata', label: 'Suricata IPS', type: 'Security Plane' }, position: { x: 500, y: 450 } },
+                { data: { id: 'wazuh', label: 'Wazuh SIEM', type: 'Security Plane' }, position: { x: 700, y: 450 } },
+
+                // DATA PLANE (Y ~ 650)
+                { data: { id: 'vyos-hub', label: 'VyOS Hub Router', type: 'Data Plane' }, position: { x: 300, y: 650 } },
+                { data: { id: 'vyos-spoke1', label: 'VyOS Spoke App Router', type: 'Data Plane' }, position: { x: 500, y: 650 } },
+                { data: { id: 'nginx-app', label: 'Internal App (NGINX)', type: 'Data Plane' }, position: { x: 500, y: 800 } },
+
+                // EDGES
+                { data: { id: 'e1', source: 'user-laptop', target: 'vyos-hub', label: 'WireGuard VPN' } },
+                { data: { id: 'e2', source: 'cf-zt', target: 'keycloak', label: 'OIDC Auth' } },
+                { data: { id: 'e3', source: 'vyos-hub', target: 'vyos-spoke1', label: 'BGP / Transit' } },
+                { data: { id: 'e4', source: 'vyos-spoke1', target: 'suricata', label: 'Mirror / Inline' } },
+                { data: { id: 'e5', source: 'vyos-spoke1', target: 'nginx-app', label: 'App Traffic' } },
+                { data: { id: 'e6', source: 'suricata', target: 'wazuh', label: 'EVE Logs' } },
+                { data: { id: 'e7', source: 'keycloak', target: 'wazuh', label: 'Audit Logs' } },
+                { data: { id: 'e8', source: 'nginx-app', target: 'vault', label: 'Secret Fetch' } }
+            ],
+
+            layout: {
+                name: 'preset',
+                padding: 50
+            },
+            userZoomingEnabled: true,
+            userPanningEnabled: true,
+            boxSelectionEnabled: false
+        });
+
+        // Fit and center
+        cy.fit(cy.elements(), 50);
+
+        // Sidebar Interaction Logic
+        cy.on('tap', 'node', function(evt){
+            var node = evt.target;
+            var id = node.id();
+            var data = architectureData[id];
+            
+            if(data) {
+                document.getElementById('sb-title').innerText = data.name;
+                document.getElementById('sb-desc').innerText = data.desc;
+                
+                let mitreHtml = data.mitre.map(m => `<span class="mitre-tag">${m}</span>`).join('');
+                
+                document.getElementById('sb-content').innerHTML = `
+                    <div class="prop-group">
+                        <div class="prop-label">Architectural Plane</div>
+                        <div class="prop-value" style="color: #3B82F6; font-weight: 600;">${data.plane}</div>
+                    </div>
+                    <div class="prop-group">
+                        <div class="prop-label">Component Type</div>
+                        <div class="prop-value">${data.type}</div>
+                    </div>
+                    <div class="prop-group">
+                        <div class="prop-label">Operational Status</div>
+                        <div class="status-badge"><i class="fa-solid fa-circle-check"></i> ${data.status}</div>
+                    </div>
+                    <div class="prop-group">
+                        <div class="prop-label">MITRE ATT&CK Mitigation</div>
+                        <div class="prop-value" style="background: transparent; border: none; padding: 0;">
+                            ${mitreHtml || '<span style="color: var(--text-muted); font-size: 0.85rem;">No direct mapping</span>'}
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        cy.on('tap', 'edge', function(evt){
+            var edge = evt.target;
+            document.getElementById('sb-title').innerText = 'Network Link: ' + edge.data('label');
+            document.getElementById('sb-desc').innerText = `Connection from ${architectureData[edge.source().id()].name} to ${architectureData[edge.target().id()].name}.`;
+            
+            document.getElementById('sb-content').innerHTML = `
+                <div class="prop-group">
+                    <div class="prop-label">Traffic Type</div>
+                    <div class="prop-value">Encrypted / Segregated</div>
+                </div>
+                <div class="prop-group">
+                    <div class="prop-label">Inspection Status</div>
+                    <div class="prop-value">Subject to Security Plane Policies</div>
+                </div>
+            `;
+        });
+
+        cy.on('tap', function(event){
+            // If background is tapped
+            if( event.target === cy ){
+                document.getElementById('sb-title').innerText = 'Architecture Overview';
+                document.getElementById('sb-desc').innerText = 'Select a node or link in the topology to view its decorticated technical breakdown, security posture, and associated planes.';
+                document.getElementById('sb-content').innerHTML = `
+                    <div class="prop-group">
+                        <div class="prop-label">System State</div>
+                        <div class="prop-value">All planes operational. Waiting for node selection.</div>
+                    </div>
+                `;
+            }
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+---
+# Site configuration for FRR routers
+site_config:
+  hq-rtr:
+    site_id: 1
+    asn: 65001
+    wan_ip: 198.51.100.10
+    lan_network: 10.1.0.0/24
+    wg_ip: 10.100.0.1
+  branch-rtr:
+    site_id: 2
+    asn: 65002
+    wan_ip: 198.51.100.20
+    lan_network: 10.2.0.0/24
+    wg_ip: 10.100.0.2
+  remote-rtr:
+    site_id: 3
+    asn: 65003
+    wan_ip: 198.51.100.30
+    lan_network: 10.3.0.0/24
+    wg_ip: 10.100.0.3
+
+# BGP Neighbor Configuration (WAN Underlay)
+bgp_neighbors:
+  hq-rtr:
+    - { ip: 198.51.100.20, asn: 65002 }  # Branch
+    - { ip: 198.51.100.30, asn: 65003 }  # Remote
+  branch-rtr:
+    - { ip: 198.51.100.10, asn: 65001 }  # HQ
+    - { ip: 198.51.100.30, asn: 65003 }  # Remote
+  remote-rtr:
+    - { ip: 198.51.100.10, asn: 65001 }  # HQ
+    - { ip: 198.51.100.20, asn: 65002 }  # Branch
+
+# WireGuard Keys (Generate with: ./generate-wg-keys.sh)
+wireguard_keys:
+  hq:
+    private_key: "{{ lookup('file', playbook_dir + '/roles/frr/vars/hq_private.key', errors='ignore') | default('CHANGE_THIS_HQ_PRIVATE_KEY', true) }}"
+    public_key: "{{ lookup('file', playbook_dir + '/roles/frr/vars/hq_public.key', errors='ignore') | default('CHANGE_THIS_HQ_PUBLIC_KEY', true) }}"
+  branch:
+    private_key: "{{ lookup('file', playbook_dir + '/roles/frr/vars/branch_private.key', errors='ignore') | default('CHANGE_THIS_BRANCH_PRIVATE_KEY', true) }}"
+    public_key: "{{ lookup('file', playbook_dir + '/roles/frr/vars/branch_public.key', errors='ignore') | default('CHANGE_THIS_BRANCH_PUBLIC_KEY', true) }}"
+  remote:
+    private_key: "{{ lookup('file', playbook_dir + '/roles/frr/vars/remote_private.key', errors='ignore') | default('CHANGE_THIS_REMOTE_PRIVATE_KEY', true) }}"
+    public_key: "{{ lookup('file', playbook_dir + '/roles/frr/vars/remote_public.key', errors='ignore') | default('CHANGE_THIS_REMOTE_PUBLIC_KEY', true) }}"
+
+# WireGuard Peer Configuration (Overlay Mesh)
+wireguard_peers:
+  hq-rtr:
+    - { name: branch-rtr, public_key: "{{ wireguard_keys.branch.public_key }}" }
+    - { name: remote-rtr, public_key: "{{ wireguard_keys.remote.public_key }}" }
+  branch-rtr:
+    - { name: hq-rtr, public_key: "{{ wireguard_keys.hq.public_key }}" }
+    - { name: remote-rtr, public_key: "{{ wireguard_keys.remote.public_key }}" }
+  remote-rtr:
+    - { name: hq-rtr, public_key: "{{ wireguard_keys.hq.public_key }}" }
+    - { name: branch-rtr, public_key: "{{ wireguard_keys.branch.public_key }}" }

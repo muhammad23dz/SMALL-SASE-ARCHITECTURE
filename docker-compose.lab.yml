@@ -1,0 +1,20 @@
+services:
+  sase-lab-environment:
+    build:
+      context: .
+      dockerfile: Dockerfile.lab.fixed
+    container_name: sase-lab
+    privileged: true
+    network_mode: host
+    pid: host
+    volumes:
+      - .:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - lab-data:/workspace/.cache
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+volumes:
+  lab-data:

@@ -1,0 +1,86 @@
+FROM ubuntu:22.04
+
+# Avoid interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install basic tools
+RUN apt update && apt upgrade -y && \
+    apt install -y \
+    curl \
+    wget \
+    git \
+    vim \
+    net-tools \
+    iproute2 \
+    iputils-ping \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    python3 \
+    python3-pip \
+    jq \
+    yamllint \
+    wireguard \
+    openssh-client \
+    iputils-arping
+
+# Install Docker
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
+    sh get-docker.sh
+
+# Install Docker Compose v2 (architecture-aware)
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "aarch64" ]; then DC_ARCH="aarch64"; else DC_ARCH="x86_64"; fi && \
+    curl -SL "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-linux-${DC_ARCH}" -o /usr/local/bin/docker-compose && \
+    chmod +x /usr/local/bin/docker-compose
+
+# Install Ansible
+RUN pip3 install ansible ansible-core ansible-pylibssh paramiko requests
+
+# Install Terraform
+RUN wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list && \
+    apt update && \
+    apt install -y terraform
+
+# Install Containerlab manually with direct download
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        CLAB_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        CLAB_ARCH="arm64"; \
+    else \
+        CLAB_ARCH="amd64"; \
+    fi && \
+    CLAB_VERSION="0.44.0" && \
+    echo "Installing containerlab v${CLAB_VERSION} for architecture: $CLAB_ARCH" && \
+    curl -L "https://github.com/srl-labs/containerlab/releases/download/v${CLAB_VERSION}/containerlab_${CLAB_VERSION}_Linux_${CLAB_ARCH}.tar.gz" -o /tmp/containerlab.tar.gz && \
+    tar -xzf /tmp/containerlab.tar.gz -C /usr/local/bin/ containerlab && \
+    mv /usr/local/bin/containerlab /usr/local/bin/clab && \
+    rm -f /tmp/containerlab.tar.gz && \
+    chmod +x /usr/local/bin/clab && \
+    clab version
+
+# Verify containerlab installation
+RUN clab version || echo "Containerlab may not be available in this architecture"
+
+# Set working directory
+WORKDIR /workspace
+
+# Create a startup script
+RUN echo '#!/bin/bash\n\
+echo "SASE Lab Environment Ready!"\n\
+echo "Available tools:"\n\
+echo "  - docker: $(docker --version)"\n\
+echo "  - docker-compose: $(docker-compose --version)"\n\
+echo "  - ansible: $(ansible --version)"\n\
+echo "  - terraform: $(terraform --version)"\n\
+echo "  - clab: $(clab version 2>/dev/null || echo not available)"\n\
+echo ""\n\
+echo "To deploy the lab, run: ./deploy.sh"\n\
+echo "To enter interactive shell, use: docker exec -it sase-lab bash"\n\
+tail -f /dev/null' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,11 @@
+# Grafana - Plugin installed at startup via GF_INSTALL_PLUGINS env var.
+# Do NOT run grafana cli here — it requires network and fails in restricted build envs.
+FROM grafana/grafana:10.2.0
+USER root
+# Copy provisioning configs
+COPY grafana-config/dashboards    /etc/grafana/provisioning/dashboards
+COPY grafana-config/datasources   /etc/grafana/provisioning/datasources
+COPY grafana-config/sase-dashboard.json /etc/grafana/provisioning/dashboards/sase-dashboard.json
+# Grafana official image uses UID 472, not the name 'grafana'
+RUN chown -R 472:472 /etc/grafana/provisioning
+USER 472

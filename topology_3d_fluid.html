@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise SASE Security Architecture Command Console</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: #06090E; color: #F1F5F9; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* Top Command Header */
+        header {
+            background: #0F172A;
+            padding: 14px 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .brand-title { font-size: 1.15rem; font-weight: 700; color: #38BDF8; letter-spacing: -0.01em; }
+        .brand-sub { font-size: 0.78rem; color: #94A3B8; margin-top: 2px; }
+
+        .metrics-strip { display: flex; gap: 16px; font-size: 0.8rem; }
+        .metric-card { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.08); padding: 6px 14px; border-radius: 8px; }
+        .metric-val { font-weight: 700; color: #F8FAFC; }
+        .val-green { color: #4ADE80; }
+        .val-blue { color: #38BDF8; }
+        .val-red { color: #F87171; }
+
+        /* Main Workspace Layout */
+        #workspace { flex: 1; display: flex; position: relative; overflow: hidden; }
+
+        /* Left Navigation & Layer Filters */
+        .layer-sidebar {
+            width: 280px;
+            background: #0B0F19;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 40;
+        }
+
+        .section-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #64748B; letter-spacing: 0.05em; }
+
+        .layer-btn {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #CBD5E1;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .layer-btn:hover, .layer-btn.active { background: #0EA5E9; color: #0F172A; border-color: #0EA5E9; font-weight: 700; }
+
+        /* Architecture Details Panel inside Sidebar */
+        .arch-summary {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 0.78rem;
+            color: #94A3B8;
+            line-height: 1.5;
+            margin-top: auto;
+        }
+        .arch-summary strong { color: #F8FAFC; display: block; margin-bottom: 4px; }
+
+        /* Central Diagram Stage */
+        #stage {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at 50% 50%, #0F172A 0%, #06090E 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* 3D Canvas Board */
+        .board3d {
+            position: relative;
+            width: 960px;
+            height: 560px;
+            transform-style: preserve-3d;
+            transform: rotateX(20deg) rotateZ(-4deg);
+            transition: transform 0.5s ease;
+        }
+
+        /* SVG Link Cables Overlay */
+        .cable-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: auto;
+            z-index: 5;
+        }
+
+        .link-path {
+            stroke-width: 3;
+            stroke-dasharray: 6 3;
+            cursor: pointer;
+            transition: stroke-width 0.2s;
+        }
+        .link-path:hover { stroke-width: 5; }
+
+        .link-bgp { stroke: #0EA5E9; }
+        .link-vpn { stroke: #EAB308; }
+        .link-sec { stroke: #EF4444; }
+        .link-data { stroke: #22C55E; }
+
+        .link-text { fill: #94A3B8; font-size: 10px; font-weight: 600; cursor: pointer; }
+
+        /* 3D Node Cards */
+        .node3d {
+            position: absolute;
+            width: 135px;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .node3d:hover {
+            transform: translateZ(20px) scale(1.06);
+            border-color: #38BDF8;
+            box-shadow: 0 20px 40px rgba(56, 189, 248, 0.3);
+        }
+
+        .node-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 8px auto;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.3rem;
+        }
+
+        .node-title { font-size: 0.8rem; font-weight: 700; color: #F8FAFC; }
+        .node-desc { font-size: 0.68rem; color: #94A3B8; margin-top: 2px; }
+
+        .node-gateway .node-icon { background: linear-gradient(135deg, #0284C7, #0369A1); }
+        .node-firewall .node-icon { background: linear-gradient(135deg, #EF4444, #B91C1C); }
+        .node-identity .node-icon { background: linear-gradient(135deg, #A855F7, #7E22CE); }
+        .node-siem .node-icon { background: linear-gradient(135deg, #EAB308, #CA8A04); }
+        .node-cloud .node-icon { background: linear-gradient(135deg, #38BDF8, #0EA5E9); }
+        .node-app .node-icon { background: linear-gradient(135deg, #22C55E, #15803D); }
+
+        /* Right Inspector Panel */
+        .inspector-panel {
+            width: 360px;
+            background: #0B0F19;
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 40;
+            overflow-y: auto;
+        }
+
+        .inspector-header { border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; }
+        .inspector-title { font-size: 1rem; font-weight: 700; color: #38BDF8; }
+        .inspector-subtitle { font-size: 0.75rem; color: #94A3B8; margin-top: 2px; }
+
+        .packet-code {
+            background: #020617;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: #38BDF8;
+            white-space: pre-wrap;
+            line-height: 1.4;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .detail-row { display: flex; justify-content: space-between; font-size: 0.78rem; padding: 6px 0; border-bottom: 1px fill rgba(255,255,255,0.05); }
+        .detail-label { color: #94A3B8; }
+        .detail-val { color: #F8FAFC; font-weight: 600; }
+
+        /* View Mode Buttons */
+        .stage-tools {
+            position: absolute;
+            bottom: 20px;
+            right: 380px;
+            display: flex;
+            gap: 8px;
+            z-index: 30;
+        }
+        .btn-view {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #F8FAFC;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-view:hover { background: #0EA5E9; border-color: #0EA5E9; }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <div class="brand-title">Enterprise SASE Architecture Command Console</div>
+            <div class="brand-sub">Real Time Decorticated Packet Traversal & Security Inspections</div>
+        </div>
+        <div class="metrics-strip">
+            <div class="metric-card">BGP Overlay: <span class="metric-val val-green">Established (3/3)</span></div>
+            <div class="metric-card">Suricata IPS: <span class="metric-val val-blue">Inline Mode Active</span></div>
+            <div class="metric-card">SIEM Ingestion: <span class="metric-val val-red">250 Alerts Indexed</span></div>
+        </div>
+    </header>
+
+    <div id="workspace">
+        
+        <!-- Left Architecture Sidebar & Layer Filter -->
+        <div class="layer-sidebar">
+            <div class="section-label">Architecture Layers</div>
+            <button class="layer-btn active" onclick="filterLayer('all')">🌐 All Architecture Layers</button>
+            <button class="layer-btn" onclick="filterLayer('bgp')">📡 Layer 3 BGP Routing Mesh</button>
+            <button class="layer-btn" onclick="filterLayer('ztna')">🔑 Zero Trust & Identity Mesh</button>
+            <button class="layer-btn" onclick="filterLayer('ips')">🛡️ Suricata IPS Threat Layer</button>
+            <button class="layer-btn" onclick="filterLayer('mitre')">🎯 MITRE ATT&CK Matrix View</button>
+
+            <div class="arch-summary">
+                <strong>Platform Blueprint</strong>
+                This console illustrates end to end packet flow between public Internet gateways, BGP routing nodes, Suricata firewalls, and Keycloak identity portals.
+            </div>
+        </div>
+
+        <!-- Central Interactive 3D Stage -->
+        <div id="stage">
+            
+            <div class="board3d" id="board">
+                
+                <!-- SVG Cable Links Overlay -->
+                <svg class="cable-svg">
+                    <!-- Internet to Cloudflare Edge -->
+                    <line x1="480" y1="65" x2="690" y2="155" class="link-path link-bgp" onclick="inspectLink('Cloud Edge Link', 'TLS 1.3 Proxy Stream to Cloudflare Access Edge', 'Client IP: 198.51.100.42 -> Target: wiki.sase-lab.win:443\\nProtocol: TLS 1.3 / QUIC\\nPolicy: ZTNA Identity Required\\nStatus: PROXIED CLEAN')" />
+                    <text x="565" y="100" class="link-text" onclick="inspectLink('Cloud Edge Link', 'TLS 1.3 Proxy Stream to Cloudflare Access Edge', 'Client IP: 198.51.100.42 -> Target: wiki.sase-lab.win:443\\nProtocol: TLS 1.3 / QUIC\\nPolicy: ZTNA Identity Required\\nStatus: PROXIED CLEAN')">Cloud Edge Link</text>
+
+                    <!-- Internet to HQ Gateway -->
+                    <line x1="480" y1="65" x2="240" y2="225" class="link-path link-bgp" onclick="inspectLink('eBGP WAN Route (HQ)', 'Border Gateway Protocol Peer Link', 'Neighbor: 172.20.20.2 (AS 65000)\\nLocal AS: 65001 (HQ Gateway)\\nState: ESTABLISHED\\nPrefixes Exchanged: 10.1.0.0/24')" />
+                    <text x="320" y="135" class="link-text">eBGP WAN Route</text>
+
+                    <!-- Internet to Branch Gateway -->
+                    <line x1="480" y1="65" x2="800" y2="225" class="link-path link-bgp" onclick="inspectLink('eBGP WAN Route (Branch)', 'Border Gateway Protocol Peer Link', 'Neighbor: 172.20.20.2 (AS 65000)\\nLocal AS: 65002 (Branch Gateway)\\nState: ESTABLISHED\\nPrefixes Exchanged: 10.2.0.0/24')" />
+                    <text x="630" y="135" class="link-text">eBGP WAN Route</text>
+
+                    <!-- HQ Gateway <-> Branch Gateway (WireGuard Mesh) -->
+                    <line x1="240" y1="225" x2="800" y2="225" class="link-path link-vpn" onclick="inspectLink('WireGuard Overlay Cable', 'Encrypted Point to Point Mesh Tunnel', 'Protocol: WireGuard UDP 51820\\nCipher: ChaCha20-Poly1305\\nHandshake: Completed 12s ago\\nRouting: BGP Over Encrypted Overlay')" />
+                    <text x="450" y="215" class="link-text" style="fill:#EAB308">WireGuard Overlay Cable</text>
+
+                    <!-- HQ Gateway to HQ Firewall -->
+                    <line x1="240" y1="225" x2="200" y2="395" class="link-path link-sec" onclick="inspectLink('Suricata IPS Cable', 'Inline Layer 7 Threat Prevention', 'Engine: Suricata 7.0 IPS\\nMode: Inline Drop\\nRules Inverted: 18,400 Signatures\\nInspected Packets: 142,500')"/>
+                    <text x="165" y="310" class="link-text" style="fill:#EF4444">Suricata IPS</text>
+
+                    <!-- HQ Firewall to Identity Portal -->
+                    <line x1="200" y1="395" x2="400" y2="415" class="link-path link-data" onclick="inspectLink('OIDC Authentication Stream', 'OAuth2 / Keycloak Identity Verification', 'IdP: Keycloak (172.28.0.10)\\nToken Type: RS256 Signed JWT\\nClaims: email, groups, roles\\nAuth Status: SUCCESS')"/>
+                    <text x="275" y="425" class="link-text" style="fill:#22C55E">OIDC Auth</text>
+
+                    <!-- HQ Firewall to Watchtower SIEM -->
+                    <line x1="200" y1="395" x2="600" y2="415" class="link-path link-data" onclick="inspectLink('Syslog Telemetry Cable', 'Centralized Security Log Ingestion', 'Collector: Wazuh Manager\\nProtocol: Syslog JSON over TCP\\nEvents Processed: 250 Alerts\\nIndex Target: wazuh-alerts-4.x')"/>
+                    <text x="415" y="385" class="link-text" style="fill:#22C55E">Syslog Stream</text>
+
+                    <!-- Watchtower SIEM to SOC Dashboard -->
+                    <line x1="600" y1="415" x2="800" y2="415" class="link-path link-data" onclick="inspectLink('OpenSearch API Stream', 'SOC Correlation Dashboard Stream', 'Target: Grafana (Port 3000)\\nDatasource: wazuh-indexer-ds\\nPanels Active: 9 SOC Widgets\\nRefresh Rate: 5s')"/>
+                    <text x="665" y="430" class="link-text" style="fill:#22C55E">OpenSearch API</text>
+                </svg>
+
+                <!-- Node 1: Global Internet -->
+                <div class="node3d node-cloud" style="top: 30px; left: 415px;" onclick="inspectNode('Global Internet Highway', 'AS 65000 Backbone', '198.51.100.1', 'UP', 'Provides simulated internet transit routing between HQ and branch sites.')">
+                    <div class="node-icon">🌐</div>
+                    <div class="node-title">Global Internet</div>
+                    <div class="node-desc">AS 65000 Transit</div>
+                </div>
+
+                <!-- Node 2: Cloudflare Edge -->
+                <div class="node3d node-cloud" style="top: 120px; left: 625px;" onclick="inspectNode('Cloudflare Zero Trust Edge', 'Domain Protection Edge', 'sase-lab.win', 'UP', 'Intercepts HTTP requests for public domains and enforces identity access rules.')">
+                    <div class="node-icon">⚡</div>
+                    <div class="node-title">Cloudflare Edge</div>
+                    <div class="node-desc">Zero Trust Shield</div>
+                </div>
+
+                <!-- Node 3: HQ Gateway -->
+                <div class="node3d node-gateway" style="top: 180px; left: 175px;" onclick="inspectNode('HQ Main Gateway Router', 'FRR 10.7 BGP Edge', '172.20.20.11', 'ESTABLISHED', 'BGP Autonomous System 65001 edge router managing HQ subnets.')">
+                    <div class="node-icon">📡</div>
+                    <div class="node-title">HQ Gateway</div>
+                    <div class="node-desc">AS 65001 Router</div>
+                </div>
+
+                <!-- Node 4: Branch Gateway -->
+                <div class="node3d node-gateway" style="top: 180px; left: 735px;" onclick="inspectNode('Branch Office Gateway Router', 'FRR 10.7 SD-WAN Edge', '172.20.20.21', 'ESTABLISHED', 'BGP Autonomous System 65002 edge router managing branch subnets.')">
+                    <div class="node-icon">🏢</div>
+                    <div class="node-title">Branch Gateway</div>
+                    <div class="node-desc">AS 65002 Router</div>
+                </div>
+
+                <!-- Node 5: HQ Firewall -->
+                <div class="node3d node-firewall" style="top: 350px; left: 135px;" onclick="inspectNode('HQ Threat Inspection Firewall', 'Suricata 7.0 IPS', '172.20.20.12', 'INLINE ACTIVE', 'Inline threat prevention firewall blocking SQL injection and port scans.')">
+                    <div class="node-icon">🛡️</div>
+                    <div class="node-title">HQ Firewall</div>
+                    <div class="node-desc">Suricata IPS</div>
+                </div>
+
+                <!-- Node 6: Identity Portal -->
+                <div class="node3d node-identity" style="top: 370px; left: 335px;" onclick="inspectNode('User Identity Portal', 'Keycloak OIDC IdP', '172.28.0.10', 'AUTHENTICATING', 'Central OpenID Connect identity provider issuing signed JWT tokens.')">
+                    <div class="node-icon">🔑</div>
+                    <div class="node-title">Identity Portal</div>
+                    <div class="node-desc">Keycloak OIDC</div>
+                </div>
+
+                <!-- Node 7: Watchtower SIEM -->
+                <div class="node3d node-siem" style="top: 370px; left: 535px;" onclick="inspectNode('Central Security Watchtower', 'Wazuh SIEM & Indexer', '172.30.0.5', '250 ALERTS', 'Ingests and correlates security logs from all routers, firewalls, and apps.')">
+                    <div class="node-icon">👁️</div>
+                    <div class="node-title">Watchtower</div>
+                    <div class="node-desc">Wazuh SIEM</div>
+                </div>
+
+                <!-- Node 8: SOC Dashboard -->
+                <div class="node3d node-app" style="top: 370px; left: 735px;" onclick="inspectNode('Live Operations Dashboard', 'Grafana SOC Portal', 'localhost:3000', 'ONLINE', 'Presents 9 color coded panels tracking threat metrics and audit streams.')">
+                    <div class="node-icon">📊</div>
+                    <div class="node-title">SOC Dashboard</div>
+                    <div class="node-desc">Grafana Monitoring</div>
+                </div>
+
+            </div>
+
+            <!-- Stage Angle Tools -->
+            <div class="stage-tools">
+                <button class="btn-view" onclick="setAngle(20, -4)">3D View</button>
+                <button class="btn-view" onclick="setAngle(0, 0)">2D Flat View</button>
+            </div>
+        </div>
+
+        <!-- Right Side Decorticated Packet & Node Inspector -->
+        <div class="inspector-panel">
+            <div class="inspector-header">
+                <div class="inspector-title" id="insp-title">Inspector Console</div>
+                <div class="inspector-subtitle" id="insp-sub">Select any cable link or node to decorticate packet telemetry</div>
+            </div>
+
+            <div class="detail-row">
+                <span class="detail-label">Element Type</span>
+                <span class="detail-val" id="insp-type">Infrastructure Cable / Node</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-val val-green" id="insp-status">OPERATIONAL</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">IP / Subnet</span>
+                <span class="detail-val" id="insp-ip">172.20.20.0/24</span>
+            </div>
+
+            <div class="section-label" style="margin-top: 10px;">Decorticated Payload Inspection</div>
+            <div class="packet-code" id="insp-code">// Click any component on the map to inspect raw packet headers, BGP state tables, or Wazuh JSON telemetry logs.</div>
+        </div>
+
+    </div>
+
+    <script>
+        const board = document.getElementById('board');
+        function setAngle(x, z) {
+            board.style.transform = `rotateX(${x}deg) rotateZ(${z}deg)`;
+        }
+
+        function inspectNode(name, subtitle, ip, status, desc) {
+            document.getElementById('insp-title').innerText = name;
+            document.getElementById('insp-sub').innerText = subtitle;
+            document.getElementById('insp-type').innerText = 'Network Node';
+            document.getElementById('insp-status').innerText = status;
+            document.getElementById('insp-ip').innerText = ip;
+            document.getElementById('insp-code').innerText = desc + "\n\n[Node Telemetry]\nStatus: ACTIVE\nPackets Processed: 245,900\nError Rate: 0.00%";
+        }
+
+        function inspectLink(name, subtitle, telemetry) {
+            document.getElementById('insp-title').innerText = name;
+            document.getElementById('insp-sub').innerText = subtitle;
+            document.getElementById('insp-type').innerText = 'Cable Link';
+            document.getElementById('insp-status').innerText = 'CONNECTED';
+            document.getElementById('insp-ip').innerText = 'Point to Point Stream';
+            document.getElementById('insp-code').innerText = "[Decorticated Link Payload]\n" + telemetry;
+        }
+
+        function filterLayer(layer) {
+            document.querySelectorAll('.layer-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (layer === 'bgp') {
+                inspectNode('Layer 3 BGP Routing Mesh', 'Autonomous System Overlay', 'AS 65001 / 65002 / 65003', 'ESTABLISHED', 'BGP dynamic routing maintains active paths across all edge containers automatically.');
+            } else if (layer === 'ztna') {
+                inspectNode('Zero Trust & Identity Mesh', 'Cloudflare Access & Keycloak', 'sase-lab.win', 'PROTECTED', 'Requires identity authentication before proxying HTTP streams to internal application ports.');
+            } else if (layer === 'ips') {
+                inspectNode('Suricata IPS Threat Layer', 'Inline Threat Prevention', '172.20.20.12', 'INLINE DROP', 'Suricata inspects Layer 7 payloads and drops SQL injection and port scan attempts inline.');
+            } else if (layer === 'mitre') {
+                inspectNode('MITRE ATT&CK Matrix View', 'Threat Mapping Framework', '250 Injected Attacks', 'MAPPED', 'Covers T1110 SSH Brute Force, T1595 Nmap Scans, T1548 Sudo Abuse, T1070 FIM Malware, and T1498 BGP Hijacks.');
+            }
+        }
+    </script>
+</body>
+</html>

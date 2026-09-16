@@ -1,0 +1,90 @@
+- name: Include vault variables
+  include_vars: "{{ playbook_dir }}/group_vars/all.yml"
+
+# -------------------------------------------------------
+# Configure interface addresses
+# -------------------------------------------------------
+- name: Configure firewall interface
+  shell: |
+    ip addr flush dev eth1 2>/dev/null || true
+    ip addr add {{ lan_ip }}/24 dev eth1
+    ip link set eth1 up
+    sysctl -w net.ipv4.ip_forward=1
+  vars:
+    lan_ip: "{{ (inventory_hostname == 'hq-fw') | ternary('10.1.0.254', '10.2.0.254') }}"
+  args:
+    executable: /bin/sh
+
+# -------------------------------------------------------
+# Configure iptables firewall rules
+# -------------------------------------------------------
+- name: Flush existing iptables rules
+  shell: |
+    iptables -F
+    iptables -t nat -F
+    iptables -X
+  args:
+    executable: /bin/sh
+
+- name: Set default policies (deny inbound)
+  shell: |
+    iptables -P INPUT DROP
+    iptables -P FORWARD DROP
+    iptables -P OUTPUT ACCEPT
+  args:
+    executable: /bin/sh
+
+- name: Allow established and related connections
+  shell: |
+    iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  args:
+    executable: /bin/sh
+
+- name: Allow loopback traffic
+  shell: |
+    iptables -A INPUT -i lo -j ACCEPT
+  args:
+    executable: /bin/sh
+
+- name: Allow WireGuard traffic (UDP 51820)
+  shell: |
+    iptables -A INPUT -p udp --dport 51820 -j ACCEPT
+    iptables -A FORWARD -p udp --dport 51820 -j ACCEPT
+  args:
+    executable: /bin/sh
+
+- name: Allow internal LAN traffic
+  shell: |
+    iptables -A FORWARD -s {{ lan_network }} -j ACCEPT
+    iptables -A INPUT -s {{ lan_network }} -j ACCEPT
+  vars:
+    lan_network: "{{ (inventory_hostname == 'hq-fw') | ternary('10.1.0.0/24', '10.2.0.0/24') }}"
+  args:
+    executable: /bin/sh
+
+- name: Allow outbound NAT for LAN
+  shell: |
+    iptables -t nat -A POSTROUTING -s {{ lan_network }} -o eth1 -j MASQUERADE
+  vars:
+    lan_network: "{{ (inventory_hostname == 'hq-fw') | ternary('10.1.0.0/24', '10.2.0.0/24') }}"
+  args:
+    executable: /bin/sh
+
+- name: Log dropped packets
+  shell: |
+    iptables -A INPUT -j LOG --log-prefix "FW-DROP-IN: " --log-level 4
+    iptables -A FORWARD -j LOG --log-prefix "FW-DROP-FWD: " --log-level 4
+  args:
+    executable: /bin/sh
+  when: firewall_log_enabled | default(true)
+
+- name: Display applied firewall rules
+  shell: iptables -L -n -v --line-numbers
+  register: fw_rules
+  args:
+    executable: /bin/sh
+
+- name: Show firewall rules
+  debug:
+    var: fw_rules.stdout_lines

@@ -1,0 +1,18 @@
+---
+# Ansible Vault encrypted variables
+# To encrypt: ansible-vault encrypt group_vars/all.yml
+# To edit: ansible-vault edit group_vars/all.yml
+
+# FRR router credentials (not needed for docker connection, kept for reference)
+frr_username: admin
+frr_password: CHANGE_THIS_FRR_PASSWORD
+
+# Firewall settings
+firewall_log_enabled: true
+
+# Wazuh endpoint for log forwarding
+wazuh_endpoint: wazuh-manager.sase-lab.local
+
+# Cloudflare credentials (will be overridden by Terraform)
+cloudflare_api_token: ""
+cloudflare_account_id: ""

@@ -1,0 +1,224 @@
+{
+  "realm": "sase-lab",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "engineering",
+        "description": "Engineering group with full access"
+      },
+      {
+        "name": "contractor",
+        "description": "Contractor group with limited access"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "Engineering",
+      "path": "/Engineering",
+      "realmRoles": ["engineering"],
+      "attributes": {
+        "access_level": ["full"],
+        "department": ["engineering"]
+      }
+    },
+    {
+      "name": "Contractors",
+      "path": "/Contractors",
+      "realmRoles": ["contractor"],
+      "attributes": {
+        "access_level": ["limited"],
+        "department": ["external"]
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "eng-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@sase-lab.local",
+      "firstName": "Engineering",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Engineering123!",
+          "temporary": false
+        }
+      ],
+      "groups": ["/Engineering"],
+      "realmRoles": ["engineering", "uma_authorization"],
+      "clientRoles": {
+        "account": ["view-profile", "manage-account"]
+      },
+      "requiredActions": [],
+      "notBefore": 0,
+      "createdTimestamp": 1690872000000
+    },
+    {
+      "username": "eng-user1",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "user1@sase-lab.local",
+      "firstName": "Engineering",
+      "lastName": "User1",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Engineering123!",
+          "temporary": false
+        }
+      ],
+      "groups": ["/Engineering"],
+      "realmRoles": ["engineering"],
+      "clientRoles": {
+        "account": ["view-profile", "manage-account"]
+      },
+      "requiredActions": [],
+      "notBefore": 0,
+      "createdTimestamp": 1690872000000
+    },
+    {
+      "username": "contractor-user1",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "contractor1@sase-lab.local",
+      "firstName": "Contractor",
+      "lastName": "User1",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Contractor123!",
+          "temporary": false
+        }
+      ],
+      "groups": ["/Contractors"],
+      "realmRoles": ["contractor"],
+      "clientRoles": {
+        "account": ["view-profile", "manage-account"]
+      },
+      "requiredActions": [],
+      "notBefore": 0,
+      "createdTimestamp": 1690872000000
+    },
+    {
+      "username": "contractor-user2",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "contractor2@sase-lab.local",
+      "firstName": "Contractor",
+      "lastName": "User2",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Contractor123!",
+          "temporary": false
+        }
+      ],
+      "groups": ["/Contractors"],
+      "realmRoles": ["contractor"],
+      "clientRoles": {
+        "account": ["view-profile", "manage-account"]
+      },
+      "requiredActions": [],
+      "notBefore": 0,
+      "createdTimestamp": 1690872000000
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "cloudflare-zero-trust",
+      "name": "Cloudflare Zero Trust",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "cloudflare-secret-change-in-production",
+      "redirectUris": [
+        "https://proud-shape-501e.cloudflareaccess.com/cdn-cgi/access/callback",
+        "https://*.cloudflareaccess.com/cdn-cgi/access/callback",
+        "https://*.cloudflareaccess.com/callback",
+        "https://*.workers.dev/cdn-cgi/access/callback"
+      ],
+      "webOrigins": [
+        "https://proud-shape-501e.cloudflareaccess.com",
+        "https://*.cloudflareaccess.com",
+        "https://*.workers.dev"
+      ],
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "300",
+        "client.session.idle.timeout": "900"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "groups",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "email",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "email",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "internationalizationEnabled": false,
+
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "eventsEnabled": true,
+  "eventsListeners": ["jboss-logging"],
+  "enabledEventTypes": [
+    "LOGIN_ERROR",
+    "LOGIN",
+    "LOGOUT",
+    "REGISTER",
+    "UPDATE_PASSWORD",
+    "UPDATE_PROFILE",
+    "CLIENT_LOGIN",
+    "CLIENT_LOGOUT"
+  ]
+}

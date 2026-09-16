@@ -1,0 +1,65 @@
+FROM ubuntu:22.04
+
+# Avoid interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install basic tools
+RUN apt update && apt upgrade -y && \
+    apt install -y \
+    curl \
+    wget \
+    git \
+    vim \
+    net-tools \
+    iproute2 \
+    iputils-ping \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    python3 \
+    python3-pip \
+    jq \
+    yamllint \
+    wireguard \
+    openssh-client
+
+# Install Docker
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
+    sh get-docker.sh
+
+# Install Docker Compose
+RUN curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
+    chmod +x /usr/local/bin/docker-compose
+
+# Install Ansible
+RUN pip3 install ansible ansible-core ansible-pylibssh paramiko requests
+
+# Install Terraform
+RUN wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list && \
+    apt update && \
+    apt install -y terraform
+
+# Install Containerlab
+RUN bash -c "$(curl -sL https://containerlab.dev/install.sh)"
+
+# Set working directory
+WORKDIR /workspace
+
+# Create a startup script
+RUN echo '#!/bin/bash\n\
+echo "SASE Lab Environment Ready!"\n\
+echo "Available tools:"\n\
+echo "  - docker: $(docker --version)"\n\
+echo "  - docker-compose: $(docker-compose --version)"\n\
+echo "  - ansible: $(ansible --version)"\n\
+echo "  - terraform: $(terraform --version)"\n\
+echo "  - clab: $(clab --version)"\n\
+echo ""\n\
+echo "To deploy the lab, run: ./deploy.sh"\n\
+echo "To enter interactive shell, use: docker exec -it sase-lab bash"\n\
+tail -f /dev/null' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,4 @@
+# Wazuh Dashboard - bake in config
+FROM wazuh/wazuh-dashboard:4.8.0
+COPY wazuh-config/opensearch_dashboards.yml /usr/share/wazuh-dashboard/config/opensearch_dashboards.yml
+COPY wazuh-config/wazuh.yml /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml

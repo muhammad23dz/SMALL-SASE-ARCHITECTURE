@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # HQ OPNsense Firewall
+  hq-opnsense:
+    image: custom-alpine-fw
+    container_name: sase-hq-opnsense
+    command: sleep infinity
+    privileged: true
+    volumes:
+      - opnsense-hq-config:/conf
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    environment:
+      - OPNSENSE_WAN_IP=${HQ_LAN_GATEWAY}
+      - OPNSENSE_LAN_IP=10.1.0.2
+      - OPNSENSE_DNS=${OPNSENSE_DNS}
+    networks:
+      sase-hq-net:
+        ipv4_address: 10.1.0.2
+    healthcheck:
+      test: ["CMD", "ping", "-c", "1", "8.8.8.8"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+
+  # Branch OPNsense Firewall
+  branch-opnsense:
+    image: custom-alpine-fw
+    container_name: sase-branch-opnsense
+    command: sleep infinity
+    privileged: true
+    volumes:
+      - opnsense-branch-config:/conf
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    environment:
+      - OPNSENSE_WAN_IP=${BRANCH_LAN_GATEWAY}
+      - OPNSENSE_LAN_IP=10.2.0.2
+      - OPNSENSE_DNS=${OPNSENSE_DNS}
+    networks:
+      sase-branch-net:
+        ipv4_address: 10.2.0.2
+    healthcheck:
+      test: ["CMD", "ping", "-c", "1", "8.8.8.8"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+
+  # Suricata IDS/IPS Service (HQ)
+  hq-suricata:
+    build:
+      context: .
+      dockerfile: Dockerfile.hq-suricata
+    image: custom-hq-suricata:latest
+    container_name: sase-hq-suricata
+    privileged: true
+    volumes:
+      - suricata-hq-logs:/var/log/suricata
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    command: ["suricata", "-i", "eth0", "-c", "/etc/suricata/suricata.yaml"]
+    environment:
+      - SURICATA_INTERFACE=eth0
+      - SURICATA_MODE=${SURICATA_MODE}
+    networks:
+      - sase-hq-net
+    depends_on:
+      - hq-opnsense
+    security_opt:
+      - no-new-privileges:true
+
+  # Suricata IDS/IPS Service (Branch)
+  branch-suricata:
+    build:
+      context: .
+      dockerfile: Dockerfile.branch-suricata
+    image: custom-branch-suricata:latest
+    container_name: sase-branch-suricata
+    privileged: true
+    volumes:
+      - suricata-branch-logs:/var/log/suricata
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    command: ["suricata", "-i", "eth0", "-c", "/etc/suricata/suricata.yaml"]
+    environment:
+      - SURICATA_INTERFACE=eth0
+      - SURICATA_MODE=${SURICATA_MODE}
+    networks:
+      - sase-branch-net
+    depends_on:
+      - branch-opnsense
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  sase-hq-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${HQ_LAN_NETWORK}
+          gateway: ${HQ_LAN_GATEWAY}
+
+  sase-branch-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${BRANCH_LAN_NETWORK}
+          gateway: ${BRANCH_LAN_GATEWAY}
+
+volumes:
+  opnsense-hq-config:
+  opnsense-branch-config:
+  suricata-hq-logs:
+  suricata-branch-logs:

@@ -1,0 +1,13 @@
+# Cloudflare Configuration
+cloudflare_api_token = "your_cloudflare_api_token_here"
+cloudflare_account_id = "your_cloudflare_account_id_here"
+cloudflare_domain     = "your-domain.com"
+
+# Keycloak OIDC Configuration
+keycloak_client_id     = "cloudflare-zero-trust"
+keycloak_client_secret = "cloudflare-secret-change-in-production"
+keycloak_issuer_url    = "http://keycloak.sase-lab.local:8080/realms/sase-lab"
+
+# Wazuh SIEM Configuration
+wazuh_endpoint = "wazuh-manager.sase-lab.local"
+enable_logpush = false  # Set to true after Wazuh is deployed

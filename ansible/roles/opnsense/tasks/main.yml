@@ -1,0 +1,160 @@
+---
+- name: Include vault variables
+  include_vars: "{{ playbook_dir }}/group_vars/all.yml"
+
+- name: Set ansible credentials from vault
+  set_fact:
+    ansible_user: "{{ opnsense_username }}"
+    ansible_password: "{{ opnsense_password }}"
+
+- name: Configure OPNsense firewall rules via API
+  uri:
+    url: "https://{{ ansible_host }}/api/firewall/rule"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no
+    body_format: json
+    body:
+      rule:
+        action: "reject"
+        interface: "wan"
+        protocol: "any"
+        source: "any"
+        destination: "any"
+        log: true
+        description: "Default Deny Inbound"
+  register: default_deny
+
+- name: Configure OPNsense firewall rules for WireGuard
+  uri:
+    url: "https://{{ ansible_host }}/api/firewall/rule"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no
+    body_format: json
+    body:
+      rule:
+        action: "pass"
+        interface: "wan"
+        protocol: "udp"
+        source: "any"
+        destination: "any"
+        destination_port: "51820"
+        log: true
+        description: "Allow WireGuard"
+
+- name: Configure OPNsense firewall rules for internal LAN
+  uri:
+    url: "https://{{ ansible_host }}/api/firewall/rule"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no
+    body_format: json
+    body:
+      rule:
+        action: "pass"
+        interface: "lan"
+        protocol: "any"
+        source: "{{ lan_network }}"
+        destination: "any"
+        log: false
+        description: "Allow Internal LAN"
+  vars:
+    lan_network: "{{ inventory_hostname == 'hq-opnsense' | ternary('10.1.0.0/24', '10.2.0.0/24') }}"
+
+- name: Configure OPNsense firewall rules for outbound internet
+  uri:
+    url: "https://{{ ansible_host }}/api/firewall/rule"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no
+    body_format: json
+    body:
+      rule:
+        action: "pass"
+        interface: "wan"
+        protocol: "any"
+        source: "{{ lan_network }}"
+        destination: "any"
+        log: true
+        description: "Allow Outbound Internet"
+  vars:
+    lan_network: "{{ inventory_hostname == 'hq-opnsense' | ternary('10.1.0.0/24', '10.2.0.0/24') }}"
+
+- name: Configure Suricata IPS via API
+  uri:
+    url: "https://{{ ansible_host }}/api/suricata/settings"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no
+    body_format: json
+    body:
+      settings:
+        enabled: true
+        interface: "wan"
+        mode: "ips"
+        ruleset: "etpro"
+        homenet: "{{ lan_network }}"
+        home_net_v6: "fc00::/7"
+  vars:
+    lan_network: "{{ inventory_hostname == 'hq-opnsense' | ternary('10.1.0.0/24', '10.2.0.0/24') }}"
+
+- name: Configure Suricata syslog forwarding
+  uri:
+    url: "https://{{ ansible_host }}/api/suricata/syslog"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no
+    body_format: json
+    body:
+      syslog:
+        enabled: true
+        server: "{{ wazuh_endpoint }}"
+        port: 514
+        protocol: "udp"
+        facility: "local1"
+        level: "info"
+  vars:
+    wazuh_endpoint: "{{ lookup('env', 'WAZUH_ENDPOINT') | default('wazuh-manager.sase-lab.local', true) }}"
+
+- name: Configure OPNsense syslog forwarding
+  uri:
+    url: "https://{{ ansible_host }}/api/syslog"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no
+    body_format: json
+    body:
+      syslog:
+        enabled: true
+        server: "{{ wazuh_endpoint }}"
+        port: 514
+        protocol: "udp"
+        facility: "local0"
+        level: "info"
+        source: "all"
+  vars:
+    wazuh_endpoint: "{{ lookup('env', 'WAZUH_ENDPOINT') | default('wazuh-manager.sase-lab.local', true) }}"
+
+- name: Apply firewall rules
+  uri:
+    url: "https://{{ ansible_host }}/api/firewall/apply"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no
+
+- name: Restart Suricata service
+  uri:
+    url: "https://{{ ansible_host }}/api/service/suricata/restart"
+    method: POST
+    user: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    validate_certs: no

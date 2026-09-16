@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SASE Lab Enterprise Architecture Master Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070A13;
+            --panel-bg: #0F172A;
+            --panel-border: #1E293B;
+            --panel-border-bright: #334155;
+            --accent-cyan: #0EA5E9;
+            --accent-blue: #3B82F6;
+            --accent-green: #10B981;
+            --accent-purple: #8B5CF6;
+            --accent-orange: #F97316;
+            --accent-red: #EF4444;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navigation Header */
+        header {
+            height: 56px;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            box-shadow: 0 0 12px rgba(14, 165, 233, 0.4);
+        }
+
+        .brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+            font-weight: 600;
+            background: rgba(14, 165, 233, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+        }
+
+        .header-stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: rgba(30, 41, 59, 0.6);
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .btn-creds {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(14, 165, 233, 0.2));
+            color: var(--accent-cyan);
+            border: 1px solid rgba(14, 165, 233, 0.4);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-creds:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 12px rgba(14, 165, 233, 0.4);
+        }
+
+        /* Main Workspace Container */
+        .workspace {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Canvas Viewport */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at 50% 50%, #0F172A 0%, #070A13 100%);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #svg-viewport {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            transition: transform 0.1s ease-out;
+        }
+
+        #svg-viewport:active {
+            cursor: grabbing;
+        }
+
+        /* Toolbar overlay */
+        .canvas-toolbar {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--panel-border-bright);
+            border-radius: 8px;
+            padding: 6px;
+            display: flex;
+            gap: 4px;
+            backdrop-filter: blur(8px);
+            z-index: 50;
+        }
+
+        .tool-btn {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .tool-btn.active {
+            background: var(--accent-cyan);
+            color: #000;
+        }
+
+        /* Right Sidebar: Decorticated Inspector */
+        .sidebar {
+            width: 420px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            z-index: 90;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            background: rgba(7, 10, 19, 0.6);
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .tab-item {
+            flex: 1;
+            padding: 14px 10px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-item:hover {
+            color: var(--text-secondary);
+        }
+
+        .tab-item.active {
+            color: var(--accent-cyan);
+            border-bottom-color: var(--accent-cyan);
+            background: rgba(14, 165, 233, 0.05);
+        }
+
+        .sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .node-header-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border: 1px solid var(--panel-border-bright);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .node-type-tag {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .tag-user { background: rgba(139, 92, 246, 0.2); color: #C084FC; border: 1px solid rgba(139, 92, 246, 0.4); }
+        .tag-control { background: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .tag-security { background: rgba(239, 68, 68, 0.2); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .tag-data { background: rgba(14, 165, 233, 0.2); color: #38BDF8; border: 1px solid rgba(14, 165, 233, 0.4); }
+
+        .node-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .node-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            margin: 20px 0 10px 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--panel-border);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .info-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--panel-border);
+            padding: 10px 12px;
+            border-radius: 6px;
+        }
+
+        .info-key {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-bottom: 4px;
+        }
+
+        .info-val {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+
+        .mitre-box {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+        }
+
+        .mitre-code {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: #EF4444;
+            font-weight: 700;
+        }
+
+        .mitre-name {
+            font-size: 12px;
+            color: var(--text-primary);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .mitre-action {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Modal Credentials Drawer */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(3, 7, 18, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-card {
+            width: 500px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border-bright);
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            background: rgba(30, 41, 59, 0.5);
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .cred-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+
+        .cred-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .cred-val {
+            color: var(--accent-green);
+        }
+
+        /* SVG Animation Styles */
+        .packet-flow {
+            stroke-dasharray: 8, 8;
+            animation: flow 1.5s linear infinite;
+        }
+
+        @keyframes flow {
+            from { stroke-dashoffset: 32; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        .node-group {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .node-group:hover rect, .node-group:hover circle {
+            filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.6));
+            stroke: #38BDF8 !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="brand-section">
+            <div class="brand-logo"><i class="fa-solid fa-shield-halved"></i></div>
+            <div>
+                <span class="brand-title">SASE LAB ENTERPRISE ARCHITECTURE</span>
+            </div>
+            <span class="brand-subtitle">VERIFIED 4-PLANE DECOMPOSITION</span>
+        </div>
+
+        <div class="header-stats">
+            <div class="stat-badge">
+                <div class="stat-dot"></div>
+                <span>BGP Mesh: <b>AS65000 / AS65001 / AS65002</b></span>
+            </div>
+            <div class="stat-badge">
+                <i class="fa-solid fa-bell" style="color: var(--accent-orange)"></i>
+                <span>Wazuh Alerts: <b style="color: var(--accent-orange)">250 Event Index</b></span>
+            </div>
+            <button class="btn-creds" onclick="toggleCredsModal()"><i class="fa-solid fa-key"></i> Platform Credentials</button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+        
+        <!-- Interactive Canvas Viewport -->
+        <div class="canvas-container">
+            <svg id="svg-viewport" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <!-- Grid Background -->
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1E293B" stroke-width="0.8" opacity="0.6"/>
+                    </pattern>
+
+                    <!-- Glow Filter -->
+                    <filter id="glow-cyan" x="-30%" y="-30%" width="160%" height="160%">
+                        <feGaussianBlur stdDeviation="6" result="blur"/>
+                        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                    </filter>
+                </defs>
+
+                <!-- Grid -->
+                <rect width="1200" height="800" fill="url(#grid)"/>
+
+                <!-- Architectural Plane Boxes -->
+                <!-- User Plane -->
+                <rect x="40" y="50" width="1120" height="130" rx="8" fill="#1E293B" fill-opacity="0.25" stroke="#8B5CF6" stroke-dasharray="4,4" stroke-width="1.5"/>
+                <text x="60" y="75" fill="#C084FC" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">ZONE 1: USER PLANE & ACCESS EDGE (Cloudflare ZTNA & WireGuard Overlay)</text>
+
+                <!-- Control Plane -->
+                <rect x="40" y="200" width="1120" height="150" rx="8" fill="#1E293B" fill-opacity="0.25" stroke="#10B981" stroke-dasharray="4,4" stroke-width="1.5"/>
+                <text x="60" y="225" fill="#34D399" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">ZONE 2: CONTROL PLANE & IDENTITY (Keycloak OIDC & HashiCorp Vault PKI)</text>
+
+                <!-- Security Plane -->
+                <rect x="40" y="370" width="1120" height="170" rx="8" fill="#1E293B" fill-opacity="0.25" stroke="#EF4444" stroke-dasharray="4,4" stroke-width="1.5"/>
+                <text x="60" y="395" fill="#FCA5A5" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">ZONE 3: SECURITY PLANE & TELEMETRY (Suricata L7 IPS & Wazuh SIEM SOC)</text>
+
+                <!-- Data Plane -->
+                <rect x="40" y="560" width="1120" height="200" rx="8" fill="#1E293B" fill-opacity="0.25" stroke="#0EA5E9" stroke-dasharray="4,4" stroke-width="1.5"/>
+                <text x="60" y="585" fill="#38BDF8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="700">ZONE 4: DATA PLANE & WORKLOAD ROUTING (VyOS BGP Mesh & NGINX Workload)</text>
+
+                <!-- ================= LINKS & WIRES ================= -->
+                <!-- Cable: User -> Cloudflare -->
+                <path d="M 220 110 L 480 110" stroke="#8B5CF6" stroke-width="2.5" fill="none" class="packet-flow"/>
+                <text x="310" y="100" fill="#C084FC" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">mTLS / HTTPS</text>
+
+                <!-- Cable: Cloudflare -> Keycloak -->
+                <path d="M 580 110 L 800 110 L 800 240" stroke="#10B981" stroke-width="2.5" fill="none" class="packet-flow"/>
+                <text x="740" y="165" fill="#34D399" font-family="'JetBrains Mono', monospace" font-size="10">OIDC Auth Trust</text>
+
+                <!-- Cable: User -> VyOS Hub Router -->
+                <path d="M 160 140 L 160 640 L 260 640" stroke="#EAB308" stroke-width="2.5" fill="none" class="packet-flow"/>
+                <text x="170" y="420" fill="#FDE047" font-family="'JetBrains Mono', monospace" font-size="10">WireGuard Tun0 (ChaCha20)</text>
+
+                <!-- Cable: VyOS Hub -> VyOS Spoke -->
+                <path d="M 380 640 L 520 640" stroke="#0EA5E9" stroke-width="3" fill="none" class="packet-flow"/>
+                <text x="450" y="630" fill="#38BDF8" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">eBGP (AS65000 ↔ AS65001)</text>
+
+                <!-- Cable: VyOS Spoke -> Suricata Inline -->
+                <path d="M 640 640 L 720 640 L 720 460" stroke="#EF4444" stroke-width="2.5" fill="none" class="packet-flow"/>
+                <text x="730" y="540" fill="#FCA5A5" font-family="'JetBrains Mono', monospace" font-size="10">L7 Inline DPI Mirror</text>
+
+                <!-- Cable: Suricata -> Wazuh SIEM -->
+                <path d="M 780 460 L 920 460" stroke="#EF4444" stroke-width="2.5" fill="none" class="packet-flow"/>
+                <text x="850" y="450" fill="#FCA5A5" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">EVE JSON Socket</text>
+
+                <!-- Cable: Keycloak -> Wazuh -->
+                <path d="M 860 280 L 980 280 L 980 410" stroke="#10B981" stroke-width="2" fill="none"/>
+                <text x="920" y="340" fill="#34D399" font-family="'JetBrains Mono', monospace" font-size="10">Audit Log Syslog</text>
+
+                <!-- Cable: VyOS Spoke -> NGINX App -->
+                <path d="M 580 670 L 580 720 M 580 720 L 720 720" stroke="#0EA5E9" stroke-width="2.5" fill="none"/>
+                <text x="640" y="710" fill="#38BDF8" font-family="'JetBrains Mono', monospace" font-size="10">Internal App VLAN</text>
+
+                <!-- Cable: NGINX App -> Vault -->
+                <path d="M 840 720 L 1050 720 L 1050 280" stroke="#10B981" stroke-width="2" fill="none" stroke-dasharray="6,4"/>
+                <text x="960" y="690" fill="#34D399" font-family="'JetBrains Mono', monospace" font-size="10">Dynamic Secret Fetch</text>
+
+                <!-- ================= NODES ================= -->
+
+                <!-- Node: Remote Client -->
+                <g class="node-group" onclick="selectNode('client')" transform="translate(100, 80)">
+                    <rect width="120" height="60" rx="8" fill="#1E293B" stroke="#8B5CF6" stroke-width="2"/>
+                    <text x="60" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">Remote User</text>
+                    <text x="60" y="45" fill="#94A3B8" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">10.200.0.5</text>
+                </g>
+
+                <!-- Node: Cloudflare ZTNA -->
+                <g class="node-group" onclick="selectNode('cf')" transform="translate(480, 80)">
+                    <rect width="140" height="60" rx="8" fill="#1E293B" stroke="#8B5CF6" stroke-width="2"/>
+                    <text x="70" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">Cloudflare ZTNA</text>
+                    <text x="70" y="45" fill="#C084FC" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">sase-lab.win</text>
+                </g>
+
+                <!-- Node: Keycloak -->
+                <g class="node-group" onclick="selectNode('keycloak')" transform="translate(720, 240)">
+                    <rect width="140" height="60" rx="8" fill="#1E293B" stroke="#10B981" stroke-width="2"/>
+                    <text x="70" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">Keycloak OIDC</text>
+                    <text x="70" y="45" fill="#34D399" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">172.28.0.10</text>
+                </g>
+
+                <!-- Node: Vault -->
+                <g class="node-group" onclick="selectNode('vault')" transform="translate(950, 240)">
+                    <rect width="140" height="60" rx="8" fill="#1E293B" stroke="#10B981" stroke-width="2"/>
+                    <text x="70" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">HashiCorp Vault</text>
+                    <text x="70" y="45" fill="#34D399" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">172.28.0.20</text>
+                </g>
+
+                <!-- Node: Suricata IPS -->
+                <g class="node-group" onclick="selectNode('suricata')" transform="translate(660, 410)">
+                    <rect width="140" height="60" rx="8" fill="#1E293B" stroke="#EF4444" stroke-width="2"/>
+                    <text x="70" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">Suricata IPS</text>
+                    <text x="70" y="45" fill="#FCA5A5" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">L7 Inline Engine</text>
+                </g>
+
+                <!-- Node: Wazuh SIEM -->
+                <g class="node-group" onclick="selectNode('wazuh')" transform="translate(920, 410)">
+                    <rect width="140" height="60" rx="8" fill="#1E293B" stroke="#EF4444" stroke-width="2"/>
+                    <text x="70" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">Wazuh SIEM</text>
+                    <text x="70" y="45" fill="#FCA5A5" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">250 Active Alerts</text>
+                </g>
+
+                <!-- Node: VyOS Hub Router -->
+                <g class="node-group" onclick="selectNode('vyos-hub')" transform="translate(260, 610)">
+                    <rect width="140" height="60" rx="8" fill="#1E293B" stroke="#0EA5E9" stroke-width="2"/>
+                    <text x="70" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">VyOS Hub Router</text>
+                    <text x="70" y="45" fill="#38BDF8" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">AS65000 | 172.20.20.1</text>
+                </g>
+
+                <!-- Node: VyOS Spoke Router -->
+                <g class="node-group" onclick="selectNode('vyos-spoke')" transform="translate(500, 610)">
+                    <rect width="140" height="60" rx="8" fill="#1E293B" stroke="#0EA5E9" stroke-width="2"/>
+                    <text x="70" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">VyOS Spoke Router</text>
+                    <text x="70" y="45" fill="#38BDF8" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">AS65001 | 172.20.20.11</text>
+                </g>
+
+                <!-- Node: NGINX App -->
+                <g class="node-group" onclick="selectNode('nginx')" transform="translate(720, 690)">
+                    <rect width="140" height="60" rx="8" fill="#1E293B" stroke="#0EA5E9" stroke-width="2"/>
+                    <text x="70" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="700" text-anchor="middle">Wiki Application</text>
+                    <text x="70" y="45" fill="#38BDF8" font-family="'JetBrains Mono', monospace" font-size="10" text-anchor="middle">10.1.0.40 (NGINX)</text>
+                </g>
+            </svg>
+
+            <!-- Canvas controls overlay -->
+            <div class="canvas-toolbar">
+                <button class="tool-btn" title="Zoom In" onclick="zoom(1.1)"><i class="fa-solid fa-plus"></i></button>
+                <button class="tool-btn" title="Zoom Out" onclick="zoom(0.9)"><i class="fa-solid fa-minus"></i></button>
+                <button class="tool-btn" title="Reset View" onclick="resetZoom()"><i class="fa-solid fa-expand"></i></button>
+            </div>
+        </div>
+
+        <!-- Decorticated Architecture Sidebar Inspector -->
+        <aside class="sidebar">
+            <div class="sidebar-tabs">
+                <div class="tab-item active" onclick="switchTab('decortication')">DECORTICATION</div>
+                <div class="tab-item" onclick="switchTab('mitre')">MITRE ATT&CK</div>
+                <div class="tab-item" onclick="switchTab('telemetry')">TELEMETRY</div>
+            </div>
+
+            <div class="sidebar-body" id="sidebar-body">
+                <!-- Content will be rendered dynamically via JavaScript -->
+            </div>
+        </aside>
+    </div>
+
+    <!-- Credentials Modal -->
+    <div class="modal-overlay" id="creds-modal" onclick="toggleCredsModal()">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-key"></i> Environment Credentials Summary</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="toggleCredsModal()"></i>
+            </div>
+            <div class="modal-body">
+                <div class="cred-row">
+                    <span class="cred-label">Keycloak Admin Portal</span>
+                    <span class="cred-val">admin / AdminKeycloak2026!</span>
+                </div>
+                <div class="cred-row">
+                    <span class="cred-label">Grafana SOC Dashboard</span>
+                    <span class="cred-val">admin / AdminGrafana2026!</span>
+                </div>
+                <div class="cred-row">
+                    <span class="cred-label">Cloudflare Zero Trust Domain</span>
+                    <span class="cred-val">https://sase-lab.win</span>
+                </div>
+                <div class="cred-row">
+                    <span class="cred-label">Architecture Console Domain</span>
+                    <span class="cred-val">https://topology.sase-lab.win</span>
+                </div>
+                <div class="cred-row">
+                    <span class="cred-label">Wazuh OpenSearch Indexer</span>
+                    <span class="cred-val">admin / SecretPassword123!</span>
+                </div>
+                <div class="cred-row">
+                    <span class="cred-label">VyOS Router SSH</span>
+                    <span class="cred-val">vyos / vyos</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const nodesData = {
+            'cf': {
+                name: 'Cloudflare Zero Trust Gateway',
+                type: 'User Plane',
+                tagClass: 'tag-user',
+                desc: 'Proxies all external incoming HTTP/S connections and authenticates users via Keycloak before allowing access to internal mesh subnets.',
+                ip: 'Public WAN Edge',
+                protocol: 'mTLS / TLS 1.3',
+                status: 'Active Tunnel',
+                mitre: [
+                    { code: 'T1078', name: 'Valid Accounts', action: 'Enforces Multi-Factor Authentication & OIDC OAuth2 token verification.' }
+                ],
+                telemetry: 'Edge tunnel connected. Zero unauthenticated requests permitted.'
+            },
+            'client': {
+                name: 'Remote User Endpoint',
+                type: 'User Plane',
+                tagClass: 'tag-user',
+                desc: 'Corporate laptop initiating encrypted zero-trust tunnel through WireGuard overlay adapter (wg0).',
+                ip: '10.200.0.5',
+                protocol: 'ChaCha20-Poly1305',
+                status: 'Connected',
+                mitre: [
+                    { code: 'T1020', name: 'Automated Exfiltration', action: 'Monitored at endpoint gateway by WireGuard interface quota.' }
+                ],
+                telemetry: 'WireGuard Handshake succeeded. Keepalive every 25s.'
+            },
+            'keycloak': {
+                name: 'Keycloak Identity Provider (IdP)',
+                type: 'Control Plane',
+                tagClass: 'tag-control',
+                desc: 'Issues OpenID Connect (OIDC) JWT bearer tokens for unified Single Sign-On across Wiki apps and Grafana dashboards.',
+                ip: '172.28.0.10',
+                protocol: 'HTTPS / OAuth2',
+                status: 'Active (Realm: SASE)',
+                mitre: [
+                    { code: 'T1556', name: 'Modify Authentication Process', action: 'Audit events forwarded directly to Wazuh SIEM.' }
+                ],
+                telemetry: 'Token Realm active. User session timeouts restricted to 15 minutes.'
+            },
+            'vault': {
+                name: 'HashiCorp Vault Secrets Manager',
+                type: 'Control Plane',
+                tagClass: 'tag-control',
+                desc: 'Manages dynamic database credentials, PKI certificate signing, and encryption keys for internal microservices.',
+                ip: '172.28.0.20',
+                protocol: 'mTLS API',
+                status: 'Unsealed / Operational',
+                mitre: [
+                    { code: 'T1552', name: 'Unsecured Credentials', action: 'Eliminates hardcoded passwords via 5-minute dynamic secret lease.' }
+                ],
+                telemetry: 'PKI engine operational. Lease TTL set to 300s.'
+            },
+            'suricata': {
+                name: 'Suricata Inline IPS Engine',
+                type: 'Security Plane',
+                tagClass: 'tag-security',
+                desc: 'Performs L7 Deep Packet Inspection on transit traffic. Filters malicious payloads including SQLi, XSS, and command injection.',
+                ip: '172.20.20.50 (Inline)',
+                protocol: 'AF_PACKET / IPS',
+                status: 'Filtering (250 Alerts Triggers)',
+                mitre: [
+                    { code: 'T1190', name: 'Exploit Public-Facing Application', action: 'Real-time signature match drops rogue HTTP requests.' }
+                ],
+                telemetry: 'EVE JSON log stream active. Transmitting events directly to Wazuh.'
+            },
+            'wazuh': {
+                name: 'Wazuh SIEM & OpenSearch Indexer',
+                type: 'Security Plane',
+                tagClass: 'tag-security',
+                desc: 'Central security information and event management indexer storing Suricata network alerts, authentication logs, and audit trails.',
+                ip: '172.28.0.30',
+                protocol: 'Elastic / Syslog',
+                status: '250 Alert Events Indexed',
+                mitre: [
+                    { code: 'TA0043', name: 'Reconnaissance Detection', action: 'Correlates port scans and anomaly events across network boundaries.' }
+                ],
+                telemetry: 'OpenSearch index green. SOC alerts rendering in Grafana.'
+            },
+            'vyos-hub': {
+                name: 'VyOS Core Transit Hub Router',
+                type: 'Data Plane',
+                tagClass: 'tag-data',
+                desc: 'BGP Autonomous System 65000 gateway routing transit traffic between remote users, public edge, and spoke subnets.',
+                ip: '172.20.20.1',
+                protocol: 'BGP AS65000 / FRR 10.7',
+                status: 'Established (3 Peers)',
+                mitre: [
+                    { code: 'T1095', name: 'Non-Application Layer Protocol', action: 'BGP peer auth keys enforced across neighbor interfaces.' }
+                ],
+                telemetry: 'FRRouting daemon active. 3 BGP neighbors established.'
+            },
+            'vyos-spoke': {
+                name: 'VyOS Spoke Application Router',
+                type: 'Data Plane',
+                tagClass: 'tag-data',
+                desc: 'Terminates subnet 10.1.0.0/24 (AS65001). Routes application traffic through inline Suricata IPS before reaching servers.',
+                ip: '172.20.20.11',
+                protocol: 'BGP AS65001',
+                status: 'Established',
+                mitre: [
+                    { code: 'T1090', name: 'Proxy Routing Anomalies', action: 'Strict rp_filter strict reverse path forwarding enabled.' }
+                ],
+                telemetry: 'Subnet 10.1.0.0/24 advertised via BGP.'
+            },
+            'nginx': {
+                name: 'Wiki Enterprise Application',
+                type: 'Data Plane',
+                tagClass: 'tag-data',
+                desc: 'Internal corporate application running on NGINX. Authenticated via Keycloak reverse proxy header verification.',
+                ip: '10.1.0.40',
+                protocol: 'HTTP / NGINX 1.25',
+                status: 'Serving Traffic',
+                mitre: [
+                    { code: 'T1059', name: 'Command and Scripting Interpreter', action: 'Containerized execution with read-only root filesystem.' }
+                ],
+                telemetry: 'Healthcheck 200 OK. Dynamic credentials validated.'
+            }
+        };
+
+        let selectedNodeKey = 'suricata';
+        let currentTab = 'decortication';
+        let zoomLevel = 1;
+
+        function renderSidebar() {
+            const data = nodesData[selectedNodeKey];
+            const body = document.getElementById('sidebar-body');
+
+            if (currentTab === 'decortication') {
+                body.innerHTML = `
+                    <div class="node-header-card">
+                        <span class="node-type-tag ${data.tagClass}">${data.type}</span>
+                        <div class="node-title">${data.name}</div>
+                        <div class="node-desc">${data.desc}</div>
+                    </div>
+
+                    <div class="section-title">Network Parameters</div>
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <div class="info-key">IP Address</div>
+                            <div class="info-val">${data.ip}</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-key">Protocol</div>
+                            <div class="info-val">${data.protocol}</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Operational Health</div>
+                    <div class="info-card" style="display: flex; align-items: center; gap: 8px;">
+                        <div class="stat-dot"></div>
+                        <span style="font-size: 13px; font-weight: 600; color: var(--accent-green);">${data.status}</span>
+                    </div>
+                `;
+            } else if (currentTab === 'mitre') {
+                const mitreHtml = data.mitre.map(m => `
+                    <div class="mitre-box">
+                        <div class="mitre-code">${m.code}</div>
+                        <div class="mitre-name">${m.name}</div>
+                        <div class="mitre-action">${m.action}</div>
+                    </div>
+                `).join('');
+
+                body.innerHTML = `
+                    <div class="section-title">MITRE ATT&CK Mitigations</div>
+                    ${mitreHtml}
+                `;
+            } else if (currentTab === 'telemetry') {
+                body.innerHTML = `
+                    <div class="section-title">Live Node Telemetry</div>
+                    <div class="info-card" style="font-family: var(--font-mono); font-size: 11px; line-height: 1.6; color: var(--accent-cyan);">
+                        ${data.telemetry}
+                    </div>
+                `;
+            }
+        }
+
+        function selectNode(key) {
+            selectedNodeKey = key;
+            renderSidebar();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            renderSidebar();
+        }
+
+        function toggleCredsModal() {
+            const modal = document.getElementById('creds-modal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function zoom(factor) {
+            zoomLevel *= factor;
+            const svg = document.getElementById('svg-viewport');
+            svg.style.transform = `scale(${zoomLevel})`;
+        }
+
+        function resetZoom() {
+            zoomLevel = 1;
+            const svg = document.getElementById('svg-viewport');
+            svg.style.transform = `scale(1)`;
+        }
+
+        // Initial render
+        renderSidebar();
+    </script>
+</body>
+</html>

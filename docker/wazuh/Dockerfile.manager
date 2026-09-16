@@ -1,0 +1,5 @@
+# Wazuh Manager - bake in configs
+FROM wazuh/wazuh-manager:4.8.0
+COPY wazuh-config/ossec.conf /var/ossec/etc/ossec.conf
+# Note: custom decoders and rules can be added to wazuh-config/decoders and wazuh-config/rules
+# and re-copied here when they exist.

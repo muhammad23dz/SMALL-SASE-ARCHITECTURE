@@ -1,0 +1,81 @@
+---
+- name: Include site-specific variables
+  include_vars: vars/main.yml
+
+- name: Include vault variables
+  include_vars: "{{ playbook_dir }}/group_vars/all.yml"
+
+- name: Set ansible credentials from vault
+  set_fact:
+    ansible_user: "{{ vyos_username }}"
+    ansible_password: "{{ vyos_password }}"
+
+- name: Configure interface addresses
+  vyos_config:
+    lines:
+      - set interfaces ethernet eth1 address '{{ site_config[inventory_hostname].wan_ip }}/24'
+      - set interfaces ethernet eth2 address '10.{{ site_config[inventory_hostname].site_id }}.0.1/24'
+      - set interfaces ethernet eth3 address '192.168.254.{{ site_config[inventory_hostname].site_id }}/24'
+
+- name: Configure BGP AS numbers
+  vyos_config:
+    lines:
+      - set protocols bgp system-as {{ site_config[inventory_hostname].asn }}
+      - set protocols bgp parameters router-id '10.{{ site_config[inventory_hostname].site_id }}.0.1'
+
+- name: Configure BGP neighbors (WAN underlay)
+  vyos_config:
+    lines:
+      - set protocols bgp neighbor {{ neighbor_item.ip }} remote-as {{ neighbor_item.asn }}
+      - set protocols bgp neighbor {{ neighbor_item.ip }} address-family ipv4-unicast
+      - set protocols bgp neighbor {{ neighbor_item.ip }} address-family ipv4-unicast soft-reconfiguration inbound
+  loop: "{{ bgp_neighbors[inventory_hostname] }}"
+  loop_control:
+    loop_var: neighbor_item
+
+- name: Configure BGP network announcements
+  vyos_config:
+    lines:
+      - set protocols bgp address-family ipv4-unicast network 10.{{ site_config[inventory_hostname].site_id }}.0.0/24
+      - set protocols bgp address-family ipv4-unicast network 192.168.254.0/24
+
+- name: Configure WireGuard interface
+  vyos_config:
+    lines:
+      - set interfaces wireguard wg0 address '{{ site_config[inventory_hostname].wg_ip }}/24'
+      - set interfaces wireguard wg0 port 51820
+      - set interfaces wireguard wg0 private-key '{{ wireguard_keys[inventory_hostname.split("-")[0]].private_key }}'
+      - set interfaces wireguard wg0 peer {{ peer_item.name }} public-key '{{ peer_item.public_key }}'
+      - set interfaces wireguard wg0 peer {{ peer_item.name }} allowed-ips '{{ site_config[peer_item.name].wg_ip }}/32'
+      - set interfaces wireguard wg0 peer {{ peer_item.name }} endpoint '{{ site_config[peer_item.name].wan_ip }}:51820'
+  loop: "{{ wireguard_peers[inventory_hostname] }}"
+  loop_control:
+    loop_var: peer_item
+  when: site_config[peer_item.name] is defined
+
+- name: Configure Policy-Based Routing for application traffic
+  vyos_config:
+    lines:
+      - set policy route PBR-INTERNAL rule 10 description 'Route internal apps via WireGuard'
+      - set policy route PBR-INTERNAL rule 10 match destination address 10.0.0.0/8
+      - set policy route PBR-INTERNAL rule 10 set table 100
+      - set policy route PBR-INTERNAL rule 20 description 'Route SaaS apps via WireGuard'
+      - set policy route PBR-INTERNAL rule 20 match destination address 172.16.0.0/12
+      - set policy route PBR-INTERNAL rule 20 set table 100
+      - set protocols static table 100 route 0.0.0.0/0 interface wg0
+
+- name: Apply PBR to LAN interface
+  vyos_config:
+    lines:
+      - set interfaces ethernet eth2 policy route PBR-INTERNAL
+
+- name: Configure OSPF for overlay network
+  vyos_config:
+    lines:
+      - set protocols ospf parameters router-id '{{ site_config[inventory_hostname].wg_ip }}'
+      - set protocols ospf area 0 network '10.100.0.0/24'
+      - set protocols ospf interface wg0
+
+- name: Save configuration
+  vyos_config:
+    save: yes

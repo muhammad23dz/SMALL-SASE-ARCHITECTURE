@@ -1,0 +1,181 @@
+%YAML 1.1
+---
+# Suricata configuration for Branch OPNsense
+af-packet:
+  - interface: eth0
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+    set-priority: yes
+
+# Suricata configuration for IPS mode
+net:
+  - dev: eth0
+    checksum-checks: auto
+    threads: auto
+    default-copy-iface: false
+
+detect-engine:
+  - profile: medium
+  - inspect-packet-buffer: yes
+  - custom-values:
+      toclient-groups: 3
+      toserver-groups: 25
+
+asn1-maxframes: 256
+
+pcre:
+  match-limit: 3500
+  match-limit-recursion: 1500
+
+defrag:
+  memcap: 32mb
+  hash-size: 65536
+  prealloc: yes
+  timeout: 60
+
+stream:
+  memcap: 32mb
+  checksum-validation: yes
+  inline: yes
+  prealloc-sessions: 2000
+  midstream: true
+
+host:
+  hash-size: 4096
+  prealloc: 1000
+  memcap: 32mb
+
+http:
+  enabled: yes
+  libhtp:
+    default-config:
+      personality: IDS
+      request-body:
+        limit: 100kb
+        min-inspect-size: 32kb
+      response-body:
+        limit: 100kb
+        min-inspect-size: 32kb
+      double-decode-path: yes
+      double-decode-query: yes
+
+dns:
+  enabled: yes
+  request-streaming: no
+  tcp:
+    enabled: yes
+    detection-ports: 53
+
+tls:
+  enabled: yes
+  detection-ports: 443
+  application-layer: yes
+
+app-layer:
+  protocols:
+    dns:
+      enabled: yes
+    http:
+      enabled: yes
+    tls:
+      enabled: yes
+    ssh:
+      enabled: yes
+    imap:
+      enabled: yes
+    smtp:
+      enabled: yes
+    smb:
+      enabled: yes
+    dcerpc:
+      enabled: yes
+    ftp:
+      enabled: yes
+    nfs:
+      enabled: yes
+    tftp:
+      enabled: yes
+    ike:
+      enabled: yes
+    krb5:
+      enabled: yes
+    sip:
+      enabled: yes
+    modbus:
+      enabled: yes
+    dnp3:
+      enabled: yes
+    enip:
+      enabled: yes
+
+outputs:
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: yes
+      filetype: regular
+
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      rotate: yes
+      rotate-size: 100mb
+      include-syslog-header: yes
+      types:
+        - alert
+        - http
+        - dns
+        - tls
+        - smtp
+        - flow
+        - ssh
+        - anomaly
+        - fileinfo
+        - dnp3
+        - sip
+        - ftp
+        - rdp
+        - ikev2
+        - modbus
+        - metadata
+        - http2
+
+  - stats:
+      enabled: yes
+      filename: stats.log
+      totals: yes
+      threads: no
+
+logging:
+  default-log-level: notice
+  outputs:
+    - console:
+        enabled: yes
+    - file:
+        enabled: yes
+        filename: suricata.log
+        level: notice
+
+rule-files:
+  - suricata.rules
+  - builtin.rules
+
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+threshold-file: /etc/suricata/threshold.config
+
+default-rule-path: /etc/suricata/rules
+exception-files:
+  - exclude.yaml
+
+# IPS configuration
+action-order:
+  - pass
+  - reject
+  - drop
+  - alert
+
+engine-mode: ips
