@@ -483,7 +483,6 @@
                 <i class="fa-solid fa-bell" style="color: var(--accent-orange)"></i>
                 <span>Wazuh Alerts: <b style="color: var(--accent-orange)">250 Event Index</b></span>
             </div>
-            <button class="btn-creds" onclick="toggleCredsModal()"><i class="fa-solid fa-key"></i> Platform Credentials</button>
         </div>
     </header>
 
@@ -649,42 +648,6 @@
                 <!-- Content will be rendered dynamically via JavaScript -->
             </div>
         </aside>
-    </div>
-
-    <!-- Credentials Modal -->
-    <div class="modal-overlay" id="creds-modal" onclick="toggleCredsModal()">
-        <div class="modal-card" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-key"></i> Environment Credentials Summary</h3>
-                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted);" onclick="toggleCredsModal()"></i>
-            </div>
-            <div class="modal-body">
-                <div class="cred-row">
-                    <span class="cred-label">Keycloak Admin Portal</span>
-                    <span class="cred-val">admin / AdminKeycloak2026!</span>
-                </div>
-                <div class="cred-row">
-                    <span class="cred-label">Grafana SOC Dashboard</span>
-                    <span class="cred-val">admin / AdminGrafana2026!</span>
-                </div>
-                <div class="cred-row">
-                    <span class="cred-label">Cloudflare Zero Trust Domain</span>
-                    <span class="cred-val">https://sase-lab.win</span>
-                </div>
-                <div class="cred-row">
-                    <span class="cred-label">Architecture Console Domain</span>
-                    <span class="cred-val">https://topology.sase-lab.win</span>
-                </div>
-                <div class="cred-row">
-                    <span class="cred-label">Wazuh OpenSearch Indexer</span>
-                    <span class="cred-val">admin / SecretPassword123!</span>
-                </div>
-                <div class="cred-row">
-                    <span class="cred-label">VyOS Router SSH</span>
-                    <span class="cred-val">vyos / vyos</span>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -875,11 +838,6 @@
             document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
             event.target.classList.add('active');
             renderSidebar();
-        }
-
-        function toggleCredsModal() {
-            const modal = document.getElementById('creds-modal');
-            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
         }
 
         function zoom(factor) {
